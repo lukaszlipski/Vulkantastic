@@ -1,6 +1,7 @@
 #include "core.h"
 #include "window.h"
 #include <vector>
+#include "device.h"
 
 std::vector<const char*> InstanceExt = {
 	VK_KHR_SURFACE_EXTENSION_NAME,
@@ -17,11 +18,16 @@ bool VulkanCore::Startup(bool DebugMode)
 	if (!CreateWin32Surface()) { return false; }
 	if (mDebugMode && !CreateDebugReportCallback()) { return false; }
 
+	mDevice = new Device();
+	if (!mDevice->IsValid()) { return false; }
+
 	return true;
 }
 
 bool VulkanCore::Shutdown()
 {
+
+	delete mDevice;
 
 	if (mDebugMode)
 	{
@@ -52,7 +58,7 @@ bool VulkanCore::CreateInstance()
 	InstInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	InstInfo.pApplicationInfo = &AppInfo;
 
-	if (mDebugMode)
+	if (GetDebugMode())
 	{
 		const char* DebugLayerName = "VK_LAYER_LUNARG_standard_validation";
 		InstInfo.enabledLayerCount = 1;
@@ -95,5 +101,8 @@ bool VulkanCore::CreateDebugReportCallback()
 
 VkBool32 VulcanDebugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData)
 {
+	OutputDebugString(pMessage);
+	OutputDebugString("\n");
+
 	return VK_FALSE;
 }
