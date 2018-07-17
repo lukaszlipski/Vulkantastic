@@ -124,12 +124,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Renderer\core.h" />
+    <ClInclude Include="Source\File\file.h" />
     <ClInclude Include="Source\Renderer\core.h" />
     <ClInclude Include="Source\Renderer\device.h" />
     <ClInclude Include="Source\Renderer\swap_chain.h" />
     <ClInclude Include="Source\Renderer\window.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\File\file.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Renderer\core.cpp" />
     <ClCompile Include="Source\Renderer\device.cpp" />
