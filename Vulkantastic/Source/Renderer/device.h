@@ -24,13 +24,21 @@ public:
 	VkDevice GetDevice() const { return mDevice; }
 	bool IsValid() const { return mDevice && mGraphicsQueue && mComputeQueue; }
 
+	inline std::vector<VkSurfaceFormatKHR> GetSurfaceFormats() const { return mSurfaceFormats; }
+	inline std::vector<VkPresentModeKHR> GetPresentModes() const { return mPresentModes; }
+	inline VkSurfaceCapabilitiesKHR GetSurfaceCapabilities() const { return mSurfaceCapabilities; }
+
 private:
 	VkDevice mDevice = nullptr;
 	QueueResult QueuesIndicies = {};
 	VkQueue mGraphicsQueue = nullptr; // Assumption that graphics queue == presentation
 	VkQueue mComputeQueue = nullptr;
+	std::vector<VkSurfaceFormatKHR> mSurfaceFormats;
+	std::vector<VkPresentModeKHR> mPresentModes;
+	VkSurfaceCapabilitiesKHR mSurfaceCapabilities;
 
 	void GetQueues();
+	void GetCapabilities(const VkPhysicalDevice& Device);
 	bool CreateDevice(const VkPhysicalDevice& Device);
 	bool FindDevice(const VkPhysicalDevice& Device);
 	QueueResult FindQueueFamilies(const VkPhysicalDevice& Device);

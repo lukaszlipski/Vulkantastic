@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#define NOMINMAX
 #include <windows.h>
 
 class Window

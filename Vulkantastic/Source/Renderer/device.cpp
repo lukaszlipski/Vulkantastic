@@ -22,6 +22,7 @@ Device::Device()
 		if (FindDevice(PhysicalDevice))
 		{
 			CreateDevice(PhysicalDevice);
+			GetCapabilities(PhysicalDevice);
 			GetQueues();
 			break;
 		}
@@ -32,6 +33,25 @@ Device::Device()
 Device::~Device()
 {
 	vkDestroyDevice(mDevice, nullptr);
+}
+
+void Device::GetCapabilities(const VkPhysicalDevice& Device)
+{
+	auto VulkanSurface = VulkanCore::Get().GetSurface();
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Device, VulkanSurface, &mSurfaceCapabilities);
+
+	uint32_t SurfaceFormatsCount;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(Device, VulkanSurface, &SurfaceFormatsCount, nullptr);
+	mSurfaceFormats.clear();
+	mSurfaceFormats.resize(SurfaceFormatsCount);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(Device, VulkanSurface, &SurfaceFormatsCount, mSurfaceFormats.data());
+
+	uint32_t PresentModesCount;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(Device, VulkanSurface, &PresentModesCount, nullptr);
+	mPresentModes.clear();
+	mPresentModes.resize(PresentModesCount);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(Device, VulkanSurface, &PresentModesCount, mPresentModes.data());
 }
 
 void Device::GetQueues()

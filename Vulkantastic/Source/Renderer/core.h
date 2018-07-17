@@ -3,6 +3,9 @@
 #define VK_USE_PLATFORM_WIN32_KHR 1
 #include "vulkan/vulkan.h"
 
+class Device;
+class SwapChain;
+
 class VulkanCore
 {
 public:
@@ -25,7 +28,8 @@ private:
 	VkInstance mInstance = nullptr;
 	VkSurfaceKHR mSurface = nullptr;
 	VkDebugReportCallbackEXT mCallback = nullptr;
-	class Device* mDevice;
+	Device* mDevice;
+	SwapChain* mSwapChain;
 
 	VulkanCore() = default;
 	bool CreateInstance();

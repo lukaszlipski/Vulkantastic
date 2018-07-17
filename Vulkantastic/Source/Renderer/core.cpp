@@ -2,6 +2,7 @@
 #include "window.h"
 #include <vector>
 #include "device.h"
+#include "swap_chain.h"
 
 std::vector<const char*> InstanceExt = {
 	VK_KHR_SURFACE_EXTENSION_NAME,
@@ -21,12 +22,15 @@ bool VulkanCore::Startup(bool DebugMode)
 	mDevice = new Device();
 	if (!mDevice->IsValid()) { return false; }
 
+	mSwapChain = new SwapChain(mDevice);
+
 	return true;
 }
 
 bool VulkanCore::Shutdown()
 {
 
+	delete mSwapChain;
 	delete mDevice;
 
 	if (mDebugMode)
@@ -69,7 +73,7 @@ bool VulkanCore::CreateInstance()
 	InstInfo.enabledExtensionCount = static_cast<uint32_t>(InstanceExt.size());
 	InstInfo.ppEnabledExtensionNames = InstanceExt.data();
 
-	if (vkCreateInstance(&InstInfo, 0, &mInstance) != VK_SUCCESS)
+	if (vkCreateInstance(&InstInfo, nullptr, &mInstance) != VK_SUCCESS)
 	{
 		return false;
 	}
