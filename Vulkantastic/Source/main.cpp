@@ -3,6 +3,7 @@
 #include "Renderer/core.h"
 #include <assert.h>
 #include "File/File.h"
+#include "Renderer/shader.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -15,7 +16,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 	{
 		Window::Get().Update();
 
-
+		
 
 	}
 

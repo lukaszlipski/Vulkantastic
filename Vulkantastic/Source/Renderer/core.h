@@ -22,6 +22,7 @@ public:
 	inline VkSurfaceKHR GetSurface() const { return mSurface; }
 	inline VkInstance GetInstance() const { return mInstance; }
 	inline bool GetDebugMode() const { return mDebugMode; }
+	inline Device* GetDevice() const { return mDevice; }
 
 private:
 	bool mDebugMode = false;

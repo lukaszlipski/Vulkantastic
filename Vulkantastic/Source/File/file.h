@@ -57,3 +57,22 @@ private:
 	bool Write(void* Handle, const void* Buffer, int32_t Size, bool Append = false);
 
 };
+
+class FileGuard
+{
+public:
+	FileGuard(FileHandle* Handle)
+		: mHandle(Handle)
+	{ }
+
+	~FileGuard()
+	{
+		File::Get().CloseFile(mHandle);
+	}
+
+	FileHandle* Get() const { return mHandle; }
+	FileHandle* operator->() const { return mHandle; }
+
+private:
+	FileHandle* mHandle = nullptr;
+};

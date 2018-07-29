@@ -52,7 +52,7 @@ bool VulkanCore::CreateInstance()
 {
 	VkApplicationInfo AppInfo = {};
 	AppInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	AppInfo.apiVersion = VK_API_VERSION_1_0;
+	AppInfo.apiVersion = VK_API_VERSION_1_1;
 	AppInfo.pApplicationName = Window::Get().GetTitle().c_str();
 	AppInfo.pEngineName = "Vulkantastic";
 	AppInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
