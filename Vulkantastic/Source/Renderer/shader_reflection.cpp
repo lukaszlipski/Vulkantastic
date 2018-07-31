@@ -411,6 +411,8 @@ VariableType ShaderReflection::GetVariableType(uint32_t Id)
 		return VariableType::INT;
 	case SpvOpTypeVector:
 		return GetTypeOfVector(Id);
+	case SpvOpTypeMatrix:
+		return GetTypeOfMatrix(Id);
 	case SpvOpTypeStruct:
 		return VariableType::STRUCTURE;
 	case SpvOpTypeSampledImage:
@@ -460,6 +462,26 @@ VariableType ShaderReflection::GetTypeOfVector(uint32_t Id)
 		break;
 	}
 	}
+	return VariableType::MAX;
+}
+
+VariableType ShaderReflection::GetTypeOfMatrix(uint32_t Id)
+{
+	const uint32_t Instruction = mVariablesSection[Id];
+
+	const uint32_t MatrixSize = mSource[Instruction + 3];
+
+	const uint32_t NextId = mSource[Instruction + 2];
+	
+	VariableType VectorType = GetTypeOfVector(NextId);
+
+	if (VectorType == VariableType::FLOAT2 && MatrixSize == 2)
+		return VariableType::MAT2x2;
+	else if (VectorType == VariableType::FLOAT3 && MatrixSize == 3)
+		return VariableType::MAT3x3;
+	else if (VectorType == VariableType::FLOAT4 && MatrixSize == 4)
+		return VariableType::MAT4x4;
+			
 	return VariableType::MAX;
 }
 

@@ -10,7 +10,7 @@ layout(binding=0) uniform UniformBuffer
 
 layout(binding=2, push_constant) uniform PushConstant
 {
-    bool Test[100];
+    mat4x4 Test[100];
 } PCInstance;
 
 layout(location=0) in vec2 aPos;

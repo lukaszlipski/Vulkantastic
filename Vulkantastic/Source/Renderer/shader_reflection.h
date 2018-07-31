@@ -96,6 +96,7 @@ private:
 
 	VariableType GetVariableType(uint32_t Id);
 	VariableType GetTypeOfVector(uint32_t Id);
+	VariableType GetTypeOfMatrix(uint32_t Id);
 
 	uint32_t mCurrentInstruction = 0;
 	std::vector<uint32_t> mSource;
