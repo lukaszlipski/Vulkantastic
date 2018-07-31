@@ -24,5 +24,25 @@ private:
 	std::vector<Uniform> mUniforms;
 	std::vector<Uniform> mPushConstants;
 
+};
+
+class ShaderManager
+{
+public:
+	static ShaderManager& Get()
+	{
+		static ShaderManager* instance = new ShaderManager();
+		return *instance;
+	}
+
+	bool Startup();
+	bool Shutdown();
+
+	Shader* Find(std::string Name);
+
+private:
+	ShaderManager() = default;
+
+	std::map<std::string, Shader*> mShaderList;
 
 };

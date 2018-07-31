@@ -39,6 +39,9 @@
     <ClInclude Include="Source\Renderer\shader_reflection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\File\path.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">

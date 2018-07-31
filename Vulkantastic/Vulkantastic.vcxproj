@@ -128,6 +128,7 @@
   <ItemGroup>
     <ClInclude Include="Renderer\core.h" />
     <ClInclude Include="Source\File\file.h" />
+    <ClInclude Include="Source\File\path.h" />
     <ClInclude Include="Source\Renderer\core.h" />
     <ClInclude Include="Source\Renderer\device.h" />
     <ClInclude Include="Source\Renderer\shader.h" />

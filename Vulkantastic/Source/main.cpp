@@ -11,6 +11,9 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 	assert(File::Get().Startup());
 	assert(Window::Get().Startup(1024, 720, "Vulkantastic"));
 	assert(VulkanCore::Get().Startup(true));
+	assert(ShaderManager::Get().Startup());
+
+	Shader* FragmentShader = ShaderManager::Get().Find("first.frag");
 
 	while (!Window::Get().ShouldWindowClose())
 	{
@@ -20,6 +23,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 	}
 
+	assert(ShaderManager::Get().Shutdown());
 	assert(VulkanCore::Get().Shutdown());
 	assert(Window::Get().Shutdown());
 	assert(File::Get().Shutdown());

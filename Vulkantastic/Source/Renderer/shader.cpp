@@ -3,6 +3,7 @@
 #include "core.h"
 #include "device.h"
 #include "shader_reflection.h"
+#include "../File/path.h"
 
 Shader::Shader(const std::string& Name)
 	: mName(Name)
@@ -41,4 +42,45 @@ Shader::~Shader()
 	const Device* VulkanDevice = VulkanCore::Get().GetDevice();
 
 	vkDestroyShaderModule(VulkanDevice->GetDevice(), mModule, nullptr);
+}
+
+bool ShaderManager::Startup()
+{
+	const std::string ShaderDirectory = File::Get().CurrentDirectory() + "/Shaders/";
+	std::vector<std::string> ShaderFileList;
+
+	File::Get().GetFiles(ShaderFileList, ShaderDirectory);
+
+	for (auto& ShaderFile : ShaderFileList)
+	{
+		std::string ShaderPath = ShaderDirectory + ShaderFile;
+		Shader* NewShader = new Shader(ShaderPath);
+		if (!NewShader->IsValid())
+		{
+			// #TODO: Log
+			return false;
+		}
+		mShaderList[ShaderFile] = NewShader;
+	}
+
+	return true;
+}
+
+bool ShaderManager::Shutdown()
+{
+	for (auto& ShaderToDelete : mShaderList)
+	{
+		delete ShaderToDelete.second;
+	}
+
+	return true;
+}
+
+Shader* ShaderManager::Find(std::string Name)
+{
+	if (Path::GetExtension(Name) != "spv")
+	{
+		Name += ".spv";
+	}
+	return mShaderList[Name];
 }
