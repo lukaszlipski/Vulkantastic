@@ -27,6 +27,7 @@ public:
 	inline std::vector<VkSurfaceFormatKHR> GetSurfaceFormats() const { return mSurfaceFormats; }
 	inline std::vector<VkPresentModeKHR> GetPresentModes() const { return mPresentModes; }
 	inline VkSurfaceCapabilitiesKHR GetSurfaceCapabilities() const { return mSurfaceCapabilities; }
+	inline VkPhysicalDeviceMemoryProperties GetMemoryProperties() const { return mMemoryProperties; }
 
 private:
 	VkDevice mDevice = nullptr;
@@ -36,6 +37,7 @@ private:
 	std::vector<VkSurfaceFormatKHR> mSurfaceFormats;
 	std::vector<VkPresentModeKHR> mPresentModes;
 	VkSurfaceCapabilitiesKHR mSurfaceCapabilities;
+	VkPhysicalDeviceMemoryProperties mMemoryProperties;
 
 	void GetQueues();
 	void GetCapabilities(const VkPhysicalDevice& Device);

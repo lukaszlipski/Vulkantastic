@@ -1,4 +1,5 @@
 #include "file.h"
+#define NOMINMAX
 #include <windows.h>
 #include <algorithm>
 

@@ -131,16 +131,19 @@
     <ClInclude Include="Source\File\path.h" />
     <ClInclude Include="Source\Renderer\core.h" />
     <ClInclude Include="Source\Renderer\device.h" />
+    <ClInclude Include="Source\Renderer\memory_manager.h" />
     <ClInclude Include="Source\Renderer\shader.h" />
     <ClInclude Include="Source\Renderer\shader_reflection.h" />
     <ClInclude Include="Source\Renderer\swap_chain.h" />
     <ClInclude Include="Source\Renderer\window.h" />
+    <ClInclude Include="Source\Utilities\Engine.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\File\file.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Renderer\core.cpp" />
     <ClCompile Include="Source\Renderer\device.cpp" />
+    <ClCompile Include="Source\Renderer\memory_manager.cpp" />
     <ClCompile Include="Source\Renderer\shader.cpp" />
     <ClCompile Include="Source\Renderer\shader_reflection.cpp" />
     <ClCompile Include="Source\Renderer\swap_chain.cpp" />

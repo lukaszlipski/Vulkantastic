@@ -143,6 +143,8 @@ bool Device::FindDevice(const VkPhysicalDevice& Device)
 
 	if (!CheckDeviceFormatsSupport(Device)) { return false; }
 
+	vkGetPhysicalDeviceMemoryProperties(Device, &mMemoryProperties);
+
 	return true;
 }
 
