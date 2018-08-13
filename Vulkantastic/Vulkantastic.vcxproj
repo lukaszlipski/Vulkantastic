@@ -91,7 +91,8 @@
       <AdditionalLibraryDirectories>Libraries/;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
-      <Command>python ./Scripts/CompileShaders.py</Command>
+      <Command>python ./Scripts/CompileShaders.py &amp; 
+python ./Scripts/PreprocessVertexDefinitions.py</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -129,12 +130,16 @@
     <ClInclude Include="Renderer\core.h" />
     <ClInclude Include="Source\File\file.h" />
     <ClInclude Include="Source\File\path.h" />
+    <ClInclude Include="Source\Math\vector2d.h" />
+    <ClInclude Include="Source\Math\vector3d.h" />
     <ClInclude Include="Source\Renderer\core.h" />
     <ClInclude Include="Source\Renderer\device.h" />
     <ClInclude Include="Source\Renderer\memory_manager.h" />
     <ClInclude Include="Source\Renderer\shader.h" />
     <ClInclude Include="Source\Renderer\shader_reflection.h" />
     <ClInclude Include="Source\Renderer\swap_chain.h" />
+    <ClInclude Include="Source\Renderer\vertex_definitions.h" />
+    <ClInclude Include="Source\Renderer\vertex_definitions_inc.h" />
     <ClInclude Include="Source\Renderer\window.h" />
     <ClInclude Include="Source\Utilities\Engine.h" />
   </ItemGroup>
@@ -147,6 +152,7 @@
     <ClCompile Include="Source\Renderer\shader.cpp" />
     <ClCompile Include="Source\Renderer\shader_reflection.cpp" />
     <ClCompile Include="Source\Renderer\swap_chain.cpp" />
+    <ClCompile Include="Source\Renderer\vertex_definitions.cpp" />
     <ClCompile Include="Source\Renderer\window.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
