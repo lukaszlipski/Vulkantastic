@@ -3,6 +3,7 @@
 #include <vector>
 #include "device.h"
 #include "swap_chain.h"
+#include "../Utilities/assert.h"
 
 std::vector<const char*> InstanceExt = {
 	VK_KHR_SURFACE_EXTENSION_NAME,
@@ -29,6 +30,7 @@ bool VulkanCore::Startup(bool DebugMode)
 
 bool VulkanCore::Shutdown()
 {
+	vkDeviceWaitIdle(mDevice->GetDevice());
 
 	delete mSwapChain;
 	delete mDevice;
@@ -46,6 +48,23 @@ bool VulkanCore::Shutdown()
 	vkDestroyInstance(mInstance, nullptr);
 
 	return true;
+}
+
+VkCommandPool VulkanCore::GetGraphicsCommandPoolForCurrentThread()
+{
+	thread_local VkCommandPool ThreadLocalCommandPool;
+	if (!ThreadLocalCommandPool)
+	{
+		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
+
+		VkCommandPoolCreateInfo CommandPoolInfo = {};
+		CommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		CommandPoolInfo.queueFamilyIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
+
+		Assert(vkCreateCommandPool(Device, &CommandPoolInfo, nullptr, &ThreadLocalCommandPool) == VK_SUCCESS);
+
+	}
+	return ThreadLocalCommandPool;
 }
 
 bool VulkanCore::CreateInstance()

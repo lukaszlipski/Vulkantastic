@@ -32,6 +32,7 @@ Shader::Shader(const std::string& Name)
 
 	mType = Reflection.GetShaderType();
 	mInputs = Reflection.GetInputs();
+	mOutputs = Reflection.GetOutputs();
 	mUniforms = Reflection.GetUniforms();
 	mPushConstants = Reflection.GetPushConstants();
 

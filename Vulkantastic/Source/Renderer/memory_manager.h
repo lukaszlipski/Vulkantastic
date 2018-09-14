@@ -3,7 +3,6 @@
 #include "device.h"
 #include <map>
 #include <list>
-#include <assert.h>
 
 
 struct MemoryFreeSpace
@@ -78,6 +77,8 @@ public:
 	bool Allocate(Allocation& Alloc, VkMemoryRequirements MemReq, bool Local = true);
 	bool Free(Allocation& Alloc);
 
+	void UploadData(Allocation& Alloc, const void* Data, uint32_t Size, uint32_t Offset = 0);
+
 private:
 	std::map<uint32_t, MemoryPool*> mLinearPools;
 	std::map<uint32_t, MemoryPool*> mNonLinearPools;
@@ -97,6 +98,7 @@ public:
 	inline uint64_t GetOffset() const { return Offset; }
 	inline VkDeviceMemory GetMemory() const { return Memory; }
 	inline uint32_t GetMemoryIndex() const { return MemoryIndex; }
+	inline uint64_t GetSize() const { return Size; }
 
 private:
 	uint64_t Size = 0;

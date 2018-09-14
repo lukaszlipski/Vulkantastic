@@ -28,7 +28,11 @@ while(Line != ""):
 
         if Words[0] == "DECLARE_VERTEX_FORMAT()":
             StartProcessing = True
-            DstFile.write("BEGIN_VERTEX_FORMAT(%s)\n" % CurrentStructName)
+            DstFile.write("BEGIN_VERTEX_FORMAT(%s, %s)\n" % (CurrentStructName, "false"))
+
+        if Words[0] == "DECLARE_VERTEX_FORMAT_INST()":
+            StartProcessing = True
+            DstFile.write("BEGIN_VERTEX_FORMAT(%s, %s)\n" % (CurrentStructName, "true"))
     else:
         if Words[0] == "};":
             StartProcessing = False
@@ -41,6 +45,7 @@ while(Line != ""):
             Variable = Words[1]
             if Variable[-1] == ";":
                 Variable = Variable[:-1]
+            
             DstFile.write("VERTEX_MEMBER(%s, %s, %s)\n" % (CurrentStructName, Type, Variable))
 
 

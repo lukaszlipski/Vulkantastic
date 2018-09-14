@@ -2,7 +2,8 @@
 #include <type_traits>
 #include "spirv/1.1/spirv.h"
 #include <utility>
-#include <assert.h>
+#include "vulkan/vulkan_core.h"
+#include "../Utilities/assert.h"
 
 struct InstructionInfo
 {
@@ -32,6 +33,63 @@ ShaderReflection::ShaderReflection(const std::vector<uint32_t>& Source)
 	if (!ParseHeader()) { return; }
 	while (ParseInstruction()) {}
 
+}
+
+VkFormat ShaderReflection::InternalFormatToVulkan(VariableType Format)
+{
+	switch (Format)
+	{
+	case VariableType::FLOAT:
+		return VK_FORMAT_R32_SFLOAT;
+	case VariableType::FLOAT2:
+		return VK_FORMAT_R32G32_SFLOAT;
+	case VariableType::FLOAT3:
+		return VK_FORMAT_R32G32B32_SFLOAT;
+	case VariableType::FLOAT4:
+		return VK_FORMAT_R32G32B32A32_SFLOAT;
+	case VariableType::INT:
+		return VK_FORMAT_R32_SINT;
+	case VariableType::INT2:
+		return VK_FORMAT_R32G32_SINT;
+	case VariableType::INT3:
+		return VK_FORMAT_R32G32B32_SINT;
+	case VariableType::INT4:
+		return VK_FORMAT_R32G32B32A32_SINT;
+	}
+	Assert(false); // Unsupported format
+	return VK_FORMAT_UNDEFINED;
+}
+
+VkShaderStageFlags ShaderReflection::InternalShaderTypeToVulkan(ShaderType Type)
+{
+	switch (Type)
+	{
+	case ShaderType::VERTEX:
+		return VK_SHADER_STAGE_VERTEX_BIT;
+	case ShaderType::FRAGMENT:
+		return VK_SHADER_STAGE_FRAGMENT_BIT;
+	case ShaderType::COMPUTE:
+		return VK_SHADER_STAGE_COMPUTE_BIT;
+	}
+
+	Assert(false); // Unsupported type
+
+	return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+}
+
+VkDescriptorType ShaderReflection::InternalUniformTypeToVulkan(VariableType Type)
+{
+	switch (Type)
+	{
+	case VariableType::STRUCTURE:
+		return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	case VariableType::SAMPLER:
+		return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	}
+
+	Assert(false); // Unsupported type
+
+	return VK_DESCRIPTOR_TYPE_MAX_ENUM;
 }
 
 bool ShaderReflection::ParseHeader()
@@ -116,6 +174,11 @@ bool ShaderReflection::ParseInstruction()
 		case SpvStorageClassInput:
 		{
 			mInputs.push_back(GetInput(CurrentVariable));
+			break;
+		}
+		case SpvStorageClassOutput:
+		{
+			mOutputs.push_back(GetOutput(CurrentVariable));
 			break;
 		}
 		case SpvStorageClassUniformConstant:
@@ -243,6 +306,33 @@ Input ShaderReflection::GetInput(const Variable& InputVariablex)
 	return Result;
 }
 
+Output ShaderReflection::GetOutput(const Variable& OutputVariable)
+{
+	Output Result = {};
+	Result.Format = OutputVariable.Type;
+	Result.Name = mNames[OutputVariable.Id];
+
+	const auto DecorateList = mDecorateSection[OutputVariable.Id];
+
+	for (auto& Decorate : DecorateList)
+	{
+		const uint32_t DecorateType = mSource[Decorate + 2];
+
+		switch (DecorateType)
+		{
+		case SpvDecorationLocation:
+		{
+			const uint32_t Location = mSource[Decorate + 3];
+			Result.Location = Location;
+			break;
+		}
+		}
+
+	}
+
+	return Result;
+}
+
 Uniform ShaderReflection::GetUniform(const Variable& UniformVariable)
 {
 	Uniform Result = {};
@@ -326,7 +416,7 @@ Variable ShaderReflection::GetVariable(uint32_t InstructionIndex)
 
 		if (ConstantSize.Instruction != SpvOpConstant)
 		{
-			assert(false); // Array only supports constant size
+			Assert(false); // Array only supports constant size
 		}
 
 		const uint32_t Size = mSource[SizeInstruction + 3];

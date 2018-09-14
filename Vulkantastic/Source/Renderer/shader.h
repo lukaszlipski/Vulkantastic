@@ -12,8 +12,14 @@ public:
 	~Shader();
 
 	std::string GetName() const { return mName; }
-	ShaderType GetType() const { mType; }
+	ShaderType GetType() const { return mType; }
 	bool IsValid() const { return mModule != VK_NULL_HANDLE; }
+	VkShaderModule GetModule() const { return mModule; }
+
+	inline std::vector<Input> GetInputs() const { return mInputs; }
+	inline std::vector<Output> GetOutputs() const { return mOutputs; }
+	inline std::vector<Uniform> GetUniforms() const { return mUniforms; }
+	inline std::vector<Uniform> GetPushConstants() const { return mPushConstants; }
 
 private:
 	std::string mName;
@@ -21,6 +27,7 @@ private:
 	VkShaderModule mModule = VK_NULL_HANDLE;
 
 	std::vector<Input> mInputs;
+	std::vector<Output> mOutputs;
 	std::vector<Uniform> mUniforms;
 	std::vector<Uniform> mPushConstants;
 

@@ -28,10 +28,13 @@ public:
 	inline std::vector<VkPresentModeKHR> GetPresentModes() const { return mPresentModes; }
 	inline VkSurfaceCapabilitiesKHR GetSurfaceCapabilities() const { return mSurfaceCapabilities; }
 	inline VkPhysicalDeviceMemoryProperties GetMemoryProperties() const { return mMemoryProperties; }
+	inline QueueResult GetQueuesIndicies() const { return mQueuesIndicies; }
+	inline VkQueue GetGraphicsQueue() const { return mGraphicsQueue; }
+	inline VkQueue GetComputeQueue() const { return mComputeQueue; }
 
 private:
 	VkDevice mDevice = nullptr;
-	QueueResult QueuesIndicies = {};
+	QueueResult mQueuesIndicies = {};
 	VkQueue mGraphicsQueue = nullptr; // Assumption that graphics queue == presentation
 	VkQueue mComputeQueue = nullptr;
 	std::vector<VkSurfaceFormatKHR> mSurfaceFormats;

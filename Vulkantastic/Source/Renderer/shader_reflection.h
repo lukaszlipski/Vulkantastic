@@ -2,6 +2,7 @@
 #include <vector>
 #include <map>
 #include <list>
+#include "vulkan/vulkan_core.h"
 
 enum class ShaderType : uint8_t
 {
@@ -45,6 +46,13 @@ struct Input
 	std::string Name;
 };
 
+struct Output
+{
+	VariableType Format = VariableType::MAX;
+	uint32_t Location = 0;
+	std::string Name;
+};
+
 struct UniformMember
 {
 	VariableType Format = VariableType::MAX;
@@ -72,9 +80,14 @@ public:
 	ShaderReflection(std::vector<uint32_t>&& Source);
 
 	std::vector<Input> GetInputs() const { return mInputs; }
+	std::vector<Output> GetOutputs() const { return mOutputs; }
 	std::vector<Uniform> GetUniforms() const { return mUniforms; }
 	std::vector<Uniform> GetPushConstants() const { return mPushConstants; }
 	inline ShaderType GetShaderType() const { return mType; }
+
+	static VkFormat InternalFormatToVulkan(VariableType Format);
+	static VkShaderStageFlags InternalShaderTypeToVulkan(ShaderType Type);
+	static VkDescriptorType InternalUniformTypeToVulkan(VariableType Type);
 
 private:
 
@@ -89,6 +102,7 @@ private:
 	void GetConstant(uint32_t InstructionIndex);
 
 	Input GetInput(const Variable& InputVariable);
+	Output GetOutput(const Variable& OutputVariable);
 	Uniform GetUniform(const Variable& UniformVariable);
 	Variable GetVariable(uint32_t InstructionIndex);
 
@@ -108,6 +122,7 @@ private:
 	std::map<uint32_t, std::list<uint32_t>> mMemberDecorateSection;
 
 	std::vector<Input> mInputs;
+	std::vector<Output> mOutputs;
 	std::vector<Uniform> mUniforms;
 	std::vector<Uniform> mPushConstants;
 

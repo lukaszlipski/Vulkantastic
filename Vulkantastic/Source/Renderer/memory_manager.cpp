@@ -4,6 +4,7 @@
 #include <algorithm>
 #include "core.h"
 #include <limits>
+#include "../Utilities/assert.h"
 
 constexpr uint64_t MemoryChunkSize = 256 * 1024 * 1024;
 static_assert(!(MemoryChunkSize & (MemoryChunkSize - 1)) && (MemoryChunkSize != 0), "Memory chunk size must be the power of two");
@@ -19,7 +20,7 @@ MemoryChunk::MemoryChunk(uint64_t Size, uint32_t MemoryIndex, uint64_t PoolId) :
 
 	const VkDevice Device = VulkanCore::Get().GetDevice()->GetDevice();
 
-	assert(vkAllocateMemory(Device, &AllocateInfo, nullptr, &mMemory) == VK_SUCCESS);
+	Assert(vkAllocateMemory(Device, &AllocateInfo, nullptr, &mMemory) == VK_SUCCESS);
 
 	mFreeList.push_back({ 0, mSize });
 }
@@ -166,6 +167,18 @@ bool MemoryManager::Free(Allocation& Alloc)
 	}
 
 	return (*PoolPtr)[MemoryIndex]->Free(Alloc);
+}
+
+void MemoryManager::UploadData(Allocation& Alloc, const void* Data, uint32_t Size, uint32_t Offset /* = 0 */)
+{
+	Assert((Alloc.GetSize() - Offset) >= Size); // Overflow
+	
+	const VkDevice Device = VulkanCore::Get().GetDevice()->GetDevice();
+
+	void* Memory;
+	vkMapMemory(Device, Alloc.GetMemory(), Alloc.GetOffset(), Alloc.GetSize(), 0, &Memory);
+	memcpy(Memory, Data, Alloc.GetSize());
+	vkUnmapMemory(Device, Alloc.GetMemory());
 }
 
 uint32_t MemoryManager::FindMemoryIndex(VkMemoryRequirements MemReq, VkMemoryPropertyFlags Flags)

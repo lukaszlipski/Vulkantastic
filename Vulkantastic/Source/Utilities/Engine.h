@@ -5,25 +5,27 @@
 #include "../Renderer/core.h"
 #include "../Renderer/memory_manager.h"
 #include "../Renderer/shader.h"
+#include "../Renderer/swap_chain.h"
+#include "assert.h"
 
 
 namespace Engine
 {
 	void Startup()
 	{
-		assert(File::Get().Startup());
-		assert(Window::Get().Startup(1024, 720, "Vulkantastic"));
-		assert(VulkanCore::Get().Startup(true));
-		assert(MemoryManager::Get().Startup());
-		assert(ShaderManager::Get().Startup());
+		Assert(File::Get().Startup());
+		Assert(Window::Get().Startup(1024, 720, "Vulkantastic"));
+		Assert(VulkanCore::Get().Startup(true));
+		Assert(MemoryManager::Get().Startup());
+		Assert(ShaderManager::Get().Startup());
 	}
 
 	void Shutdown()
 	{
-		assert(ShaderManager::Get().Shutdown());
-		assert(MemoryManager::Get().Shutdown());
-		assert(VulkanCore::Get().Shutdown());
-		assert(Window::Get().Shutdown());
-		assert(File::Get().Shutdown());
+		Assert(ShaderManager::Get().Shutdown());
+		Assert(MemoryManager::Get().Shutdown());
+		Assert(VulkanCore::Get().Shutdown());
+		Assert(Window::Get().Shutdown());
+		Assert(File::Get().Shutdown());
 	}
 }

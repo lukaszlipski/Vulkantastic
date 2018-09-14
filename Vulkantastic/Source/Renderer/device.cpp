@@ -56,11 +56,11 @@ void Device::GetCapabilities(const VkPhysicalDevice& Device)
 
 void Device::GetQueues()
 {
-	vkGetDeviceQueue(mDevice, QueuesIndicies.GraphicsIndex, 0, &mGraphicsQueue);
+	vkGetDeviceQueue(mDevice, mQueuesIndicies.GraphicsIndex, 0, &mGraphicsQueue);
 
-	if (QueuesIndicies.ComputeIndex != QueuesIndicies.GraphicsIndex)
+	if (mQueuesIndicies.ComputeIndex != mQueuesIndicies.GraphicsIndex)
 	{
-		vkGetDeviceQueue(mDevice, QueuesIndicies.ComputeIndex, 0, &mComputeQueue);
+		vkGetDeviceQueue(mDevice, mQueuesIndicies.ComputeIndex, 0, &mComputeQueue);
 	}
 	else
 	{
@@ -80,17 +80,17 @@ bool Device::CreateDevice(const VkPhysicalDevice& Device)
 	VkDeviceQueueCreateInfo GraphicsQueueCreateInfo = {};
 	GraphicsQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	GraphicsQueueCreateInfo.queueCount = 1;
-	GraphicsQueueCreateInfo.queueFamilyIndex = QueuesIndicies.GraphicsIndex;
+	GraphicsQueueCreateInfo.queueFamilyIndex = mQueuesIndicies.GraphicsIndex;
 	GraphicsQueueCreateInfo.pQueuePriorities = &Priorities;
 
 	Queues.push_back(GraphicsQueueCreateInfo);
 
-	if (QueuesIndicies.GraphicsIndex != QueuesIndicies.ComputeIndex)
+	if (mQueuesIndicies.GraphicsIndex != mQueuesIndicies.ComputeIndex)
 	{
 		VkDeviceQueueCreateInfo ComputeQueueCreateInfo = {};
 		ComputeQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 		ComputeQueueCreateInfo.queueCount = 1;
-		ComputeQueueCreateInfo.queueFamilyIndex = QueuesIndicies.ComputeIndex;
+		ComputeQueueCreateInfo.queueFamilyIndex = mQueuesIndicies.ComputeIndex;
 		ComputeQueueCreateInfo.pQueuePriorities = &Priorities;
 
 		Queues.push_back(ComputeQueueCreateInfo);
@@ -101,6 +101,7 @@ bool Device::CreateDevice(const VkPhysicalDevice& Device)
 
 	// Device features
 	VkPhysicalDeviceFeatures DeviceFeatures = {};
+	DeviceFeatures.samplerAnisotropy = VK_TRUE;
 
 	DeviceCreateInfo.pEnabledFeatures = &DeviceFeatures;
 
@@ -139,7 +140,7 @@ bool Device::FindDevice(const VkPhysicalDevice& Device)
 		return false;
 	}
 
-	QueuesIndicies = Queues;
+	mQueuesIndicies = Queues;
 
 	if (!CheckDeviceFormatsSupport(Device)) { return false; }
 

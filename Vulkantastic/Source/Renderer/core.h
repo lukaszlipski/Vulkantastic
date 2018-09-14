@@ -19,10 +19,13 @@ public:
 	bool Startup(bool DebugMode = false);
 	bool Shutdown();
 
+	VkCommandPool GetGraphicsCommandPoolForCurrentThread();
+
 	inline VkSurfaceKHR GetSurface() const { return mSurface; }
 	inline VkInstance GetInstance() const { return mInstance; }
 	inline bool GetDebugMode() const { return mDebugMode; }
 	inline Device* GetDevice() const { return mDevice; }
+	inline SwapChain* GetSwapChain() const { return mSwapChain; }
 
 private:
 	bool mDebugMode = false;

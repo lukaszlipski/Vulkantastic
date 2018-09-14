@@ -1,8 +1,8 @@
 #include "swap_chain.h"
 #include "device.h"
-#include <assert.h>
 #include <algorithm>
 #include "core.h"
+#include "../Utilities/assert.h"
 
 SwapChain::SwapChain(const Device* VulkanDevice)
 	: mVulkanDevice(VulkanDevice)
@@ -12,7 +12,7 @@ SwapChain::SwapChain(const Device* VulkanDevice)
 
 	auto VulkanSurface = VulkanCore::Get().GetSurface();
 	auto SurfaceCapabilities = mVulkanDevice->GetSurfaceCapabilities();
-	assert(2 >= SurfaceCapabilities.minImageCount);
+	Assert(2 >= SurfaceCapabilities.minImageCount);
 
 	VkSwapchainCreateInfoKHR SwapchainInfo = {};
 	SwapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -32,7 +32,14 @@ SwapChain::SwapChain(const Device* VulkanDevice)
 	SwapchainInfo.queueFamilyIndexCount = 0;
 	SwapchainInfo.pQueueFamilyIndices = nullptr;
 
-	assert(vkCreateSwapchainKHR(mVulkanDevice->GetDevice(), &SwapchainInfo, nullptr, &mSwapChain) == VK_SUCCESS);
+	Assert(vkCreateSwapchainKHR(mVulkanDevice->GetDevice(), &SwapchainInfo, nullptr, &mSwapChain) == VK_SUCCESS);
+
+	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
+
+	uint32_t SwapchainImagesCount;
+	vkGetSwapchainImagesKHR(Device, mSwapChain, &SwapchainImagesCount, nullptr);
+	mImages.resize(SwapchainImagesCount);
+	vkGetSwapchainImagesKHR(Device, mSwapChain, &SwapchainImagesCount, mImages.data());
 
 }
 
@@ -52,7 +59,7 @@ void SwapChain::FindFormat()
 		return SupportedFormat && SupportedColorSpace;
 	});
 
-	assert(RequestedFormat != Formats.end());
+	Assert(RequestedFormat != Formats.end());
 
 	mFormat = *RequestedFormat;
 }
@@ -68,7 +75,7 @@ void SwapChain::FindPresentMode()
 		RequestedPresentMode = std::find(PresentModes.begin(), PresentModes.end(), VK_PRESENT_MODE_FIFO_KHR);
 	}
 
-	assert(RequestedPresentMode != PresentModes.end());
+	Assert(RequestedPresentMode != PresentModes.end());
 
 	mPresentMode = *RequestedPresentMode;
 }
