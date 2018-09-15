@@ -2,6 +2,7 @@
 #include "image.h"
 #include <algorithm>
 #include "../Utilities/assert.h"
+#include "command_buffer.h"
 
 Image::Image(std::initializer_list<uint32_t> QueueIndices, ImageUsage Flags, bool GPUSide, ImageSettings Settings /* = {} */, void* Data /* = nullptr */)
 	: mQueueIndices(QueueIndices), mFlags(Flags), mGPUSide(GPUSide), mSettings(Settings)
@@ -77,25 +78,10 @@ void Image::ChangeLayout(ImageLayout DstLayout)
 {
 	if (DstLayout == mCurrentLayout) { return; }
 
-	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
-	const VkCommandPool CommandPool = VulkanCore::Get().GetGraphicsCommandPoolForCurrentThread();
-	const VkQueue GraphicsQueue = VulkanCore::Get().GetDevice()->GetGraphicsQueue();
+	const int32_t GraphicsIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
 
-	VkCommandBufferAllocateInfo CommandBufferAllocateInfo = {};
-	CommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	CommandBufferAllocateInfo.commandBufferCount = 1;
-	CommandBufferAllocateInfo.commandPool = CommandPool;
-	CommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-	VkCommandBuffer ChangeLayoutCommandBuffer;
-
-	Assert(vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, &ChangeLayoutCommandBuffer) == VK_SUCCESS);
-
-	VkCommandBufferBeginInfo ChangeLayoutCommandBeginInfo = {};
-	ChangeLayoutCommandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	ChangeLayoutCommandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-	Assert(vkBeginCommandBuffer(ChangeLayoutCommandBuffer, &ChangeLayoutCommandBeginInfo) == VK_SUCCESS);
+	CommandBuffer Cb(GraphicsIndex);
+	Cb.Begin();
 
 	VkImageMemoryBarrier Transition = {};
 	Transition.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -113,19 +99,11 @@ void Image::ChangeLayout(ImageLayout DstLayout)
 	// #TODO: Select proper mask and flags based on current and destination layout
 	Transition.srcAccessMask = 0;
 	Transition.dstAccessMask = 0;
-	vkCmdPipelineBarrier(ChangeLayoutCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &Transition);
+	vkCmdPipelineBarrier(Cb.GetCommandBuffer(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &Transition);
 
-	vkEndCommandBuffer(ChangeLayoutCommandBuffer);
+	Cb.End();
+	Cb.Submit(true);
 
-	VkSubmitInfo SubmitInfo = {};
-	SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	SubmitInfo.commandBufferCount = 1;
-	SubmitInfo.pCommandBuffers = &ChangeLayoutCommandBuffer;
-
-	Assert(vkQueueSubmit(GraphicsQueue, 1, &SubmitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
-	vkQueueWaitIdle(GraphicsQueue);
-
-	vkFreeCommandBuffers(Device, CommandPool, 1, &ChangeLayoutCommandBuffer);
 
 	mCurrentLayout = DstLayout;
 }
@@ -138,25 +116,10 @@ void Image::CopyFromBuffer(const Buffer* Other)
 	Assert((GetFlags() & ImageUsage::TRANSFER_DST) == ImageUsage::TRANSFER_DST);
 	Assert((Other->GetFlags() & BufferUsage::TRANSFER_SRC) == BufferUsage::TRANSFER_SRC);
 
-	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
-	const VkCommandPool CommandPool = VulkanCore::Get().GetGraphicsCommandPoolForCurrentThread();
-	const VkQueue GraphicsQueue = VulkanCore::Get().GetDevice()->GetGraphicsQueue();
+	const int32_t GraphicsIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
 
-	VkCommandBufferAllocateInfo CommandBufferAllocateInfo = {};
-	CommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	CommandBufferAllocateInfo.commandBufferCount = 1;
-	CommandBufferAllocateInfo.commandPool = CommandPool;
-	CommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-	VkCommandBuffer CopyCommandBuffer;
-
-	Assert(vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, &CopyCommandBuffer) == VK_SUCCESS);
-
-	VkCommandBufferBeginInfo CopyCommandBeginInfo = {};
-	CopyCommandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	CopyCommandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-	Assert(vkBeginCommandBuffer(CopyCommandBuffer, &CopyCommandBeginInfo) == VK_SUCCESS);
+	CommandBuffer Cb(GraphicsIndex);
+	Cb.Begin();
 
 	VkBufferImageCopy CopyInfo = {};
 	CopyInfo.imageExtent.depth = 1;
@@ -166,19 +129,10 @@ void Image::CopyFromBuffer(const Buffer* Other)
 	CopyInfo.imageSubresource.layerCount = 1;
 	CopyInfo.imageSubresource.mipLevel = 0;
 
-	vkCmdCopyBufferToImage(CopyCommandBuffer, Other->GetBuffer(), mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &CopyInfo);
+	vkCmdCopyBufferToImage(Cb.GetCommandBuffer(), Other->GetBuffer(), mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &CopyInfo);
 
-	vkEndCommandBuffer(CopyCommandBuffer);
-
-	VkSubmitInfo SubmitInfo = {};
-	SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	SubmitInfo.commandBufferCount = 1;
-	SubmitInfo.pCommandBuffers = &CopyCommandBuffer;
-
-	vkQueueSubmit(GraphicsQueue, 1, &SubmitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(GraphicsQueue);
-
-	vkFreeCommandBuffers(Device, CommandPool, 1, &CopyCommandBuffer);
+	Cb.End();
+	Cb.Submit(true);
 
 	if (CurrentLayoutCpy != ImageLayout::UNDEFINED)
 	{

@@ -7,6 +7,7 @@
 #include "Renderer/image.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include "Renderer/command_buffer.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -137,14 +138,15 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		// Vertex buffer data
 		const std::vector<VertexDefinition::Simple> Vertices = {
-			{ { 0.0f, -0.5f },{ 1.0f, 0.0f, 0.0f }, {0.5f, 0.0f} },
-			{ { 0.5f, 0.5f },{ 0.0f, 1.0f, 0.0f }, {1.0f, 1.0f} },
-			{ { -0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f }, {0.0f, 1.0f} }
+			{ { -0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f }, {0.0f, 1.0f} }, // 0
+			{ { 0.5f, 0.5f },{ 0.0f, 1.0f, 0.0f }, {1.0f, 1.0f} },  // 1
+			{ { 0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f }, {1.0f, 0.0f} }, // 2
+			{ { -0.5f, -0.5f },{ 0.0f, 0.0f, 1.0f }, {0.0f, 0.0f} } // 3
 		};
 
 		// Create vertex buffer
 		uint32_t GraphicsQueueIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
-		Buffer VertexBuffer({ GraphicsQueueIndex }, BufferUsage::VERTEX | BufferUsage::TRANSFER_DST, true, sizeof(VertexDefinition::Simple) * 3, Vertices.data());
+		Buffer VertexBuffer({ GraphicsQueueIndex }, BufferUsage::VERTEX | BufferUsage::TRANSFER_DST, true, sizeof(VertexDefinition::Simple) * Vertices.size(), Vertices.data());
 
 		// Instance data
 		const std::vector<VertexDefinition::SimpleInstanced> VerticesInst = {
@@ -154,7 +156,15 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		};
 
 		// Create vertex buffer for instance data
-		Buffer VertexBufferInst({ GraphicsQueueIndex }, BufferUsage::VERTEX | BufferUsage::TRANSFER_DST, true, sizeof(VertexDefinition::SimpleInstanced) * 3, VerticesInst.data());
+		Buffer VertexBufferInst({ GraphicsQueueIndex }, BufferUsage::VERTEX | BufferUsage::TRANSFER_DST, true, sizeof(VertexDefinition::SimpleInstanced) * VerticesInst.size(), VerticesInst.data());
+
+		// Index buffer data
+		const std::vector<int16_t> Indicies = {
+			0,2,1,
+			0,3,2
+		};
+		// Create index buffer
+		Buffer IndexBuffer({ GraphicsQueueIndex }, BufferUsage::INDEX | BufferUsage::TRANSFER_DST, true, sizeof(int16_t) * Indicies.size(), Indicies.data());
 
 		// Create uniform buffer
 		Vector2D UBData = { 0.1f, 0.1f };
@@ -331,26 +341,16 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		}
 
 		// Allocate and init command buffers
-		std::vector<VkCommandBuffer> CommandBuffers;
-		CommandBuffers.resize(Framebuffers.size());
+		std::vector<CommandBuffer*> CommandBuffers;
 
-		VkCommandBufferAllocateInfo AllocateInfo = {};
-		AllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		AllocateInfo.commandBufferCount = static_cast<uint32_t>(CommandBuffers.size());
-		AllocateInfo.commandPool = VulkanCore::Get().GetGraphicsCommandPoolForCurrentThread();
-		AllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		const int32_t GraphicsIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
 
-		VulkanCore::Get().GetGraphicsCommandPoolForCurrentThread();
-
-		vkAllocateCommandBuffers(Device, &AllocateInfo, CommandBuffers.data());
-
-		for (int32_t i = 0; i < CommandBuffers.size(); ++i)
+		for (int32_t i = 0; i < Framebuffers.size(); ++i)
 		{
-			VkCommandBufferBeginInfo BeginInfo = {};
-			BeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			BeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+			CommandBuffer* Cb = new CommandBuffer(GraphicsIndex);
+			CommandBuffers.push_back(Cb);
 
-			vkBeginCommandBuffer(CommandBuffers[i], &BeginInfo);
+			Cb->Begin(CBUsage::SIMULTANEOUS);
 
 			const VkClearValue Clear[] = { { 0, 0, 0, 1 } };
 
@@ -363,19 +363,20 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			RenderPassBeginInfo.clearValueCount = 1;
 			RenderPassBeginInfo.pClearValues = Clear;
 
-			vkCmdBeginRenderPass(CommandBuffers[i], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
+			vkCmdBeginRenderPass(Cb->GetCommandBuffer(), &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindPipeline(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
 			VkDeviceSize Offsets[] = { 0 };
 			auto BufferTmp = VertexBuffer.GetBuffer();
-			vkCmdBindVertexBuffers(CommandBuffers[i], 0, 1, &BufferTmp, Offsets);
+			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 0, 1, &BufferTmp, Offsets);
 			auto InstBufferTmp = VertexBufferInst.GetBuffer();
-			vkCmdBindVertexBuffers(CommandBuffers[i], 1, 1, &InstBufferTmp, Offsets);
-			vkCmdSetViewport(CommandBuffers[i], 0, 1, &Viewport);
-			vkCmdBindDescriptorSets(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout.GetPipelineLayout(), 0, 1, &DescriptorSet, 0, nullptr);
-			vkCmdDraw(CommandBuffers[i], 3, 3, 0, 0);
-			vkCmdEndRenderPass(CommandBuffers[i]);
+			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 1, 1, &InstBufferTmp, Offsets);
+			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, 1, &Viewport);
+			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout.GetPipelineLayout(), 0, 1, &DescriptorSet, 0, nullptr);
+			vkCmdDrawIndexed(Cb->GetCommandBuffer(), Indicies.size(), 3, 0, 0, 0);
+			vkCmdEndRenderPass(Cb->GetCommandBuffer());
 
-			vkEndCommandBuffer(CommandBuffers[i]);
+			Cb->End();
 
 		}
 
@@ -413,18 +414,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			uint32_t ImageIndex;
 			vkAcquireNextImageKHR(Device, VulkanCore::Get().GetSwapChain()->GetSwapChain(), std::numeric_limits<uint64_t>::max(), ImageReadyToDraw[CurrentFrame], VK_NULL_HANDLE, &ImageIndex);
 
-			VkPipelineStageFlags StageFlag[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-			VkSubmitInfo SubmitInfo = {};
-			SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			SubmitInfo.commandBufferCount = 1;
-			SubmitInfo.pCommandBuffers = &CommandBuffers[ImageIndex];
-			SubmitInfo.waitSemaphoreCount = 1;
-			SubmitInfo.pWaitSemaphores = &ImageReadyToDraw[CurrentFrame];
-			SubmitInfo.pWaitDstStageMask = StageFlag;
-			SubmitInfo.signalSemaphoreCount = 1;
-			SubmitInfo.pSignalSemaphores = &ImageReadyToPresent[CurrentFrame];
-
-			vkQueueSubmit(VulkanCore::Get().GetDevice()->GetGraphicsQueue(), 1, &SubmitInfo, FrameFence[CurrentFrame]);
+			CommandBuffers[CurrentFrame]->Submit(FrameFence[CurrentFrame], { ImageReadyToPresent[CurrentFrame] }, { ImageReadyToDraw[CurrentFrame] }, { PipelineStage::COLOR_ATTACHMENT });
 
 			VkPresentInfoKHR PresentInfo = {};
 			PresentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -438,6 +428,11 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			vkQueuePresentKHR(VulkanCore::Get().GetDevice()->GetGraphicsQueue(), &PresentInfo);
 
 			CurrentFrame = (CurrentFrame + 1) % CommandBuffers.size();
+		}
+
+		for (auto& Cb : CommandBuffers)
+		{
+			delete Cb;
 		}
 
 	}

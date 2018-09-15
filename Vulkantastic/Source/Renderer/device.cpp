@@ -1,6 +1,7 @@
 #include "device.h"
 #include "core.h"
 #include <algorithm>
+#include "../Utilities/assert.h"
 
 std::vector<const char*> DeviceExt = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -33,6 +34,20 @@ Device::Device()
 Device::~Device()
 {
 	vkDestroyDevice(mDevice, nullptr);
+}
+
+VkQueue Device::GetQueueByIndex(int32_t QueueIndex) const
+{
+	if (VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex == QueueIndex)
+	{
+		return GetGraphicsQueue();
+	}
+	else if (VulkanCore::Get().GetDevice()->GetQueuesIndicies().ComputeIndex == QueueIndex)
+	{
+		return GetComputeQueue();
+	}
+	Assert(false); // Wrong queue index
+	return nullptr;
 }
 
 void Device::GetCapabilities(const VkPhysicalDevice& Device)

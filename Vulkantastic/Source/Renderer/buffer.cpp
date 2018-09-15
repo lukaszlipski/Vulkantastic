@@ -2,6 +2,7 @@
 #include "core.h"
 #include "device.h"
 #include "../Utilities/assert.h"
+#include "command_buffer.h"
 
 Buffer::Buffer(std::initializer_list<uint32_t> QueueIndices, BufferUsage Flags, bool GPUSide, uint32_t Size, const void* Data /*= nullptr*/) 
 	: mQueueIndices(QueueIndices), mFlags(Flags), mGPUSide(GPUSide), mSize(Size)
@@ -64,42 +65,20 @@ void Buffer::CopyFromBuffer(const Buffer* Other, uint64_t Size, uint64_t SrcOffs
 	Assert((GetFlags() & BufferUsage::TRANSFER_DST) == BufferUsage::TRANSFER_DST);
 	Assert((Other->GetFlags() & BufferUsage::TRANSFER_SRC) == BufferUsage::TRANSFER_SRC);
 
-	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
-	const VkCommandPool CommandPool = VulkanCore::Get().GetGraphicsCommandPoolForCurrentThread();
-	const VkQueue GraphicsQueue = VulkanCore::Get().GetDevice()->GetGraphicsQueue();
+	const int32_t GraphicsIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
 
-	VkCommandBuffer CopyCommandBuffer;
+	CommandBuffer Cb(GraphicsIndex);
 
-	VkCommandBufferAllocateInfo CommandBufferAllocateInfo = {};
-	CommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	CommandBufferAllocateInfo.commandBufferCount = 1;
-	CommandBufferAllocateInfo.commandPool = CommandPool;
-	CommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-	Assert(vkAllocateCommandBuffers(Device, &CommandBufferAllocateInfo, &CopyCommandBuffer) == VK_SUCCESS);
-
-	VkCommandBufferBeginInfo CopyCommandBeginInfo = {};
-	CopyCommandBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	CopyCommandBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	Cb.Begin();
 
 	VkBufferCopy CopyInfo = {};
 	CopyInfo.size = Size;
 	CopyInfo.dstOffset = DstOffset;
 	CopyInfo.srcOffset = SrcOffset;
 
-	vkBeginCommandBuffer(CopyCommandBuffer, &CopyCommandBeginInfo);
-	vkCmdCopyBuffer(CopyCommandBuffer, Other->GetBuffer(), GetBuffer(), 1, &CopyInfo);
-	vkEndCommandBuffer(CopyCommandBuffer);
+	vkCmdCopyBuffer(Cb.GetCommandBuffer(), Other->GetBuffer(), GetBuffer(), 1, &CopyInfo);
 
-	// Invoke copy
-	VkSubmitInfo CopySubmitInfo = {};
-	CopySubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	CopySubmitInfo.commandBufferCount = 1;
-	CopySubmitInfo.pCommandBuffers = &CopyCommandBuffer;
-
-	Assert(vkQueueSubmit(GraphicsQueue, 1, &CopySubmitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
-	vkQueueWaitIdle(GraphicsQueue);
-
-	vkFreeCommandBuffers(Device, CommandPool, 1, &CopyCommandBuffer);
+	Cb.End();
+	Cb.Submit(true);
 
 }

@@ -67,6 +67,37 @@ VkCommandPool VulkanCore::GetGraphicsCommandPoolForCurrentThread()
 	return ThreadLocalCommandPool;
 }
 
+VkCommandPool VulkanCore::GetComputeCommandPoolForCurrentThread()
+{
+	thread_local VkCommandPool ThreadLocalCommandPool;
+	if (!ThreadLocalCommandPool)
+	{
+		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
+
+		VkCommandPoolCreateInfo CommandPoolInfo = {};
+		CommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		CommandPoolInfo.queueFamilyIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().ComputeIndex;
+
+		Assert(vkCreateCommandPool(Device, &CommandPoolInfo, nullptr, &ThreadLocalCommandPool) == VK_SUCCESS);
+
+	}
+	return ThreadLocalCommandPool;
+}
+
+VkCommandPool VulkanCore::GetCommandPoolByIndex(int32_t QueueIndex) const
+{
+	if (Get().GetDevice()->GetQueuesIndicies().GraphicsIndex == QueueIndex)
+	{
+		return Get().GetGraphicsCommandPoolForCurrentThread();
+	}
+	else if (Get().GetDevice()->GetQueuesIndicies().ComputeIndex == QueueIndex)
+	{
+		return Get().GetComputeCommandPoolForCurrentThread();
+	}
+	Assert(false); // Wrong queue index
+	return nullptr;
+}
+
 bool VulkanCore::CreateInstance()
 {
 	VkApplicationInfo AppInfo = {};

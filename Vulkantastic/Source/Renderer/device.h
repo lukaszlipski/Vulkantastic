@@ -31,6 +31,7 @@ public:
 	inline QueueResult GetQueuesIndicies() const { return mQueuesIndicies; }
 	inline VkQueue GetGraphicsQueue() const { return mGraphicsQueue; }
 	inline VkQueue GetComputeQueue() const { return mComputeQueue; }
+	VkQueue GetQueueByIndex(int32_t QueueIndex) const;
 
 private:
 	VkDevice mDevice = nullptr;

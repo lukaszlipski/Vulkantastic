@@ -133,6 +133,7 @@ python ./Scripts/PreprocessVertexDefinitions.py</Command>
     <ClInclude Include="Source\Math\vector2d.h" />
     <ClInclude Include="Source\Math\vector3d.h" />
     <ClInclude Include="Source\Renderer\buffer.h" />
+    <ClInclude Include="Source\Renderer\command_buffer.h" />
     <ClInclude Include="Source\Renderer\core.h" />
     <ClInclude Include="Source\Renderer\device.h" />
     <ClInclude Include="Source\Renderer\image.h" />
@@ -151,6 +152,7 @@ python ./Scripts/PreprocessVertexDefinitions.py</Command>
     <ClCompile Include="Source\File\file.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Renderer\buffer.cpp" />
+    <ClCompile Include="Source\Renderer\command_buffer.cpp" />
     <ClCompile Include="Source\Renderer\core.cpp" />
     <ClCompile Include="Source\Renderer\device.cpp" />
     <ClCompile Include="Source\Renderer\image.cpp" />

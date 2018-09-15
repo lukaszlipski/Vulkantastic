@@ -20,6 +20,8 @@ public:
 	bool Shutdown();
 
 	VkCommandPool GetGraphicsCommandPoolForCurrentThread();
+	VkCommandPool GetComputeCommandPoolForCurrentThread();
+	VkCommandPool GetCommandPoolByIndex(int32_t QueueIndex) const;
 
 	inline VkSurfaceKHR GetSurface() const { return mSurface; }
 	inline VkInstance GetInstance() const { return mInstance; }
