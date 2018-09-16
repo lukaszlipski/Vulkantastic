@@ -50,6 +50,11 @@ Image::Image(std::initializer_list<uint32_t> QueueIndices, ImageUsage Flags, boo
 
 	UploadData(Data, mSettings.Width * mSettings.Height * GetNumComponentsByFormat(mSettings.Format));
 
+	if (mSettings.Mipmaps)
+	{
+		GenerateMipMaps();
+	}
+
 }
 
 Image::~Image()
@@ -90,7 +95,7 @@ void Image::ChangeLayout(ImageLayout DstLayout)
 	Transition.newLayout = static_cast<VkImageLayout>(DstLayout);
 	Transition.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	Transition.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	Transition.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	Transition.subresourceRange.aspectMask = mSettings.Format == ImageFormat::D24S8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 	Transition.subresourceRange.baseArrayLayer = 0;
 	Transition.subresourceRange.baseMipLevel = 0;
 	Transition.subresourceRange.layerCount = 1;
@@ -141,6 +146,71 @@ void Image::CopyFromBuffer(const Buffer* Other)
 
 }
 
+void Image::GenerateMipMaps()
+{
+	Assert(mSettings.Mipmaps);
+
+	const int32_t GraphicsIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
+	CommandBuffer Cb(GraphicsIndex);
+	Cb.Begin();
+
+	VkImageMemoryBarrier Transition = {};
+	Transition.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	Transition.image = mImage;
+	Transition.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	Transition.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	Transition.subresourceRange.aspectMask = mSettings.Format == ImageFormat::D24S8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	Transition.subresourceRange.baseArrayLayer = 0;
+	Transition.subresourceRange.layerCount = 1;
+	Transition.subresourceRange.levelCount = 1;
+
+	int32_t CurrentMipWidth = mSettings.Width;
+	int32_t CurrentMipHeight = mSettings.Height;
+
+	for (uint32_t MipMapLvl = 1; MipMapLvl < mMipMapsCount; ++MipMapLvl)
+	{
+		Transition.subresourceRange.baseMipLevel = MipMapLvl - 1;
+		Transition.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		Transition.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		Transition.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		Transition.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+		vkCmdPipelineBarrier(Cb.GetCommandBuffer(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &Transition);
+
+		VkImageBlit Blit = {};
+		Blit.dstSubresource.aspectMask = Blit.srcSubresource.aspectMask = mSettings.Format == ImageFormat::D24S8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		Blit.dstSubresource.baseArrayLayer = Blit.srcSubresource.baseArrayLayer = 0;
+		Blit.dstSubresource.layerCount = Blit.srcSubresource.layerCount = 1;
+
+		Blit.srcOffsets[0] = { 0,0,0 };
+		Blit.srcOffsets[1] = { CurrentMipWidth, CurrentMipHeight, 1 };
+		Blit.srcSubresource.mipLevel = MipMapLvl - 1;
+
+		(CurrentMipWidth / 2) > 1 ? CurrentMipWidth /= 2 : CurrentMipWidth = 1;
+		(CurrentMipHeight / 2) > 1 ? CurrentMipHeight /= 2 : CurrentMipHeight = 1;
+
+		Blit.dstOffsets[0] = { 0,0,0 };
+		Blit.dstOffsets[1] = { CurrentMipWidth, CurrentMipHeight, 1 };
+		Blit.dstSubresource.mipLevel = MipMapLvl;
+
+		vkCmdBlitImage(Cb.GetCommandBuffer(), mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &Blit, VK_FILTER_LINEAR);
+
+	}
+
+	Transition.subresourceRange.baseMipLevel = mMipMapsCount - 1;
+	Transition.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	Transition.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	Transition.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	Transition.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+	vkCmdPipelineBarrier(Cb.GetCommandBuffer(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &Transition);
+
+	Cb.End();
+	Cb.Submit(true);
+
+	mCurrentLayout = ImageLayout::TRANSFER_SRC;
+}
+
 uint8_t Image::GetNumComponentsByFormat(ImageFormat Format)
 {
 	switch (Format)
@@ -150,6 +220,7 @@ uint8_t Image::GetNumComponentsByFormat(ImageFormat Format)
 	case ImageFormat::R8G8:
 		return 2;
 	case ImageFormat::R8G8B8A8:
+	case ImageFormat::D24S8:
 		return 4;
 	}
 	return 0;

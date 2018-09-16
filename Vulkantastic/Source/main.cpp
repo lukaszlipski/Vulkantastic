@@ -182,9 +182,9 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		Settings.Width = Width;
 		Settings.Format = ImageFormat::R8G8B8A8;
 		Settings.Type = ImageType::TWODIM;
-		Settings.Mipmaps = false;
+		Settings.Mipmaps = true;
 
-		Image ImageBuffer({ GraphicsQueueIndex }, ImageUsage::SAMPLED | ImageUsage::TRANSFER_DST, true, Settings, Pixels);
+		Image ImageBuffer({ GraphicsQueueIndex }, ImageUsage::SAMPLED | ImageUsage::TRANSFER_DST | ImageUsage::TRANSFER_SRC, true, Settings, Pixels);
 		ImageBuffer.ChangeLayout(ImageLayout::SHADER_READ);
 
 		// Create image view
@@ -235,7 +235,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		PoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		PoolSizes[0].descriptorCount = 1;
 
-		PoolSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		PoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		PoolSizes[1].descriptorCount = 1;
 
 		VkDescriptorPoolCreateInfo CreateInfo = {};

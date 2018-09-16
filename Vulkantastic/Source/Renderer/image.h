@@ -27,7 +27,8 @@ enum class ImageFormat : uint8_t
 {
 	R8 = VK_FORMAT_R8_UNORM,
 	R8G8 = VK_FORMAT_R8G8_UNORM,
-	R8G8B8A8 = VK_FORMAT_R8G8B8A8_UNORM
+	R8G8B8A8 = VK_FORMAT_R8G8B8A8_UNORM,
+	D24S8 = VK_FORMAT_D24_UNORM_S8_UINT
 };
 
 enum class ImageType : uint8_t
@@ -71,6 +72,7 @@ public:
 	void UploadData(const void* Data, uint32_t Size);
 	void ChangeLayout(ImageLayout DstLayout);
 	void CopyFromBuffer(const Buffer* Other);
+	void GenerateMipMaps();
 
 	inline VkImage GetImage() const { return mImage; }
 	inline uint64_t GetSize() const { return mAllocation.GetSize(); }
