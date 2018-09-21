@@ -22,7 +22,7 @@ public:
 	inline VkImageView GetView() const { return mView; }
 
 private:
-	VkImageView mView;
+	VkImageView mView = nullptr;
 	Image* mImage;
 	ImageViewSettings mSettings;
 

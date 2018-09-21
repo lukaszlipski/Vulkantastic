@@ -9,6 +9,7 @@
 #include <stb_image.h>
 #include "Renderer/command_buffer.h"
 #include "Renderer/image_view.h"
+#include "Renderer/sampler.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -196,26 +197,10 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		ImageView View(&ImageBuffer, ViewSettings);
 
 		// Create sampler
-		VkSampler Sampler;
+		SamplerSettings SamplerInstSettings = {};
+		SamplerInstSettings.MaxAnisotropy = 16;
 
-		VkSamplerCreateInfo SamplerInfo = {};
-		SamplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		SamplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		SamplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		SamplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		SamplerInfo.anisotropyEnable = VK_TRUE;
-		SamplerInfo.maxAnisotropy = 16;
-		SamplerInfo.compareEnable = VK_FALSE;
-		SamplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		SamplerInfo.magFilter = VK_FILTER_LINEAR;
-		SamplerInfo.minFilter = VK_FILTER_LINEAR;
-		SamplerInfo.maxLod = 1;
-		SamplerInfo.minLod = 0;
-		SamplerInfo.unnormalizedCoordinates = VK_FALSE;
-		SamplerInfo.mipLodBias = .0f;
-		SamplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-		vkCreateSampler(Device, &SamplerInfo, nullptr, &Sampler);
+		Sampler SamplerInst(SamplerInstSettings);
 
 		// Descriptor pool
 		std::array<VkDescriptorPoolSize, 2> PoolSizes;
@@ -254,7 +239,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		VkDescriptorImageInfo ImageInfo = {};
 		ImageInfo.imageLayout = static_cast<VkImageLayout>(ImageBuffer.GetCurrentLayout());
 		ImageInfo.imageView = View.GetView();
-		ImageInfo.sampler = Sampler;
+		ImageInfo.sampler = SamplerInst.GetSampler();
 
 		std::array<VkWriteDescriptorSet, 2> Sets = {};
 
