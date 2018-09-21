@@ -78,6 +78,7 @@ public:
 	inline uint64_t GetSize() const { return mAllocation.GetSize(); }
 	inline ImageUsage GetFlags() const { return mFlags; }
 	inline ImageLayout GetCurrentLayout() const { return mCurrentLayout; }
+	inline uint32_t GetMipMapsCount() const { return mMipMapsCount; }
 
 	static uint8_t GetNumComponentsByFormat(ImageFormat Format);
 

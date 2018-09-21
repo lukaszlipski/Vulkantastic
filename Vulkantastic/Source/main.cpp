@@ -8,6 +8,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include "Renderer/command_buffer.h"
+#include "Renderer/image_view.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -188,24 +189,11 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		ImageBuffer.ChangeLayout(ImageLayout::SHADER_READ);
 
 		// Create image view
-		VkImageView ImageView;
+		ImageViewSettings ViewSettings = {};
+		ViewSettings.MipMapLevelCount = ImageBuffer.GetMipMapsCount();
+		ViewSettings.Format = ImageFormat::R8G8B8A8;
 
-		VkImageViewCreateInfo ViewInfo = {};
-		ViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		ViewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-		ViewInfo.image = ImageBuffer.GetImage();
-		ViewInfo.subresourceRange.baseMipLevel = 0;
-		ViewInfo.subresourceRange.levelCount = 1;
-		ViewInfo.subresourceRange.baseArrayLayer = 0;
-		ViewInfo.subresourceRange.layerCount = 1;
-		ViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		ViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		ViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		ViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		ViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		ViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-
-		vkCreateImageView(Device, &ViewInfo, nullptr, &ImageView);
+		ImageView View(&ImageBuffer, ViewSettings);
 
 		// Create sampler
 		VkSampler Sampler;
@@ -265,7 +253,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		VkDescriptorImageInfo ImageInfo = {};
 		ImageInfo.imageLayout = static_cast<VkImageLayout>(ImageBuffer.GetCurrentLayout());
-		ImageInfo.imageView = ImageView;
+		ImageInfo.imageView = View.GetView();
 		ImageInfo.sampler = Sampler;
 
 		std::array<VkWriteDescriptorSet, 2> Sets = {};
