@@ -19,6 +19,12 @@ public:
 	ImageView(Image* DesiredImage, ImageViewSettings Settings);
 	~ImageView();
 
+	ImageView(const ImageView& Rhs) = delete;
+	ImageView& operator=(const ImageView& Rhs) = delete;
+
+	ImageView(ImageView&& Rhs) noexcept;
+	ImageView& operator=(ImageView&& Rhs) noexcept;
+
 	inline VkImageView GetView() const { return mView; }
 
 private:

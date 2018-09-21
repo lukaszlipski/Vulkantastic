@@ -57,6 +57,30 @@ Image::Image(std::initializer_list<uint32_t> QueueIndices, ImageUsage Flags, boo
 
 }
 
+Image::Image(Image&& Rhs) noexcept
+{
+	*this = std::move(Rhs);
+}
+
+Image& Image::operator=(Image&& Rhs) noexcept
+{
+	mImage = Rhs.mImage;
+	Rhs.mImage = nullptr;
+
+	mAllocation = Rhs.mAllocation;
+	Rhs.mAllocation.Invalidate();
+
+	mCurrentLayout = Rhs.mCurrentLayout;
+	mMipMapsCount = Rhs.mMipMapsCount;
+	mQueueIndices = std::move(Rhs.mQueueIndices);
+	mFlags = Rhs.mFlags;
+	mMemoryRequirements = Rhs.mMemoryRequirements;
+	mSettings = Rhs.mSettings;
+	mGPUSide = Rhs.mGPUSide;
+
+	return *this;
+}
+
 Image::~Image()
 {
 	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();

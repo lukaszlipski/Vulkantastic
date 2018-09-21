@@ -29,11 +29,13 @@ class Buffer
 {
 public:
 	Buffer(std::initializer_list<uint32_t> QueueIndices, BufferUsage Flags, bool GPUSide, uint32_t Size, const void* Data = nullptr);
-
-	Buffer(const Buffer& Other) = delete;
-	Buffer& operator=(Buffer other) = delete;
-
 	~Buffer();
+
+	Buffer(const Buffer& Rhs) = delete;
+	Buffer& operator=(const Buffer& Rhs) = delete;
+
+	Buffer(Buffer&& Rhs) noexcept;
+	Buffer& operator=(Buffer&& Rhs) noexcept;
 
 	void UploadData(const void* Data, uint32_t Size, uint32_t Offset = 0);
 	void CopyFromBuffer(const Buffer* Other, uint64_t Size, uint64_t SrcOffset = 0, uint64_t DstOffset = 0);

@@ -158,6 +158,8 @@ bool MemoryManager::Allocate(Allocation& Alloc, VkMemoryRequirements MemReq, boo
 
 bool MemoryManager::Free(Allocation& Alloc)
 {
+	if (!Alloc.IsValid()) { return false; }
+
 	const uint32_t MemoryIndex = Alloc.GetMemoryIndex();
 	auto* PoolPtr = Alloc.NonLinear ? &mNonLinearPools : &mLinearPools;
 

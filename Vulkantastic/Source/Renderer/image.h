@@ -63,11 +63,13 @@ class Image
 {
 public:
 	Image(std::initializer_list<uint32_t> QueueIndices, ImageUsage Flags, bool GPUSide, ImageSettings Settings = {}, void* Data = nullptr);
-
-	Image(const Image& Other) = delete;
-	Image& operator=(Image other) = delete;
-
 	~Image();
+
+	Image(const Image& Rhs) = delete;
+	Image& operator=(const Image& Rhs) = delete;
+
+	Image(Image&& Rhs) noexcept;
+	Image& operator=(Image&& Rhs) noexcept;
 
 	void UploadData(const void* Data, uint32_t Size);
 	void ChangeLayout(ImageLayout DstLayout);

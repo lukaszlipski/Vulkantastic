@@ -28,8 +28,24 @@ ImageView::ImageView(Image* DesiredImage, ImageViewSettings Settings)
 
 }
 
+ImageView::ImageView(ImageView&& Rhs) noexcept
+{
+	*this = std::move(Rhs);
+}
+
+ImageView& ImageView::operator=(ImageView&& Rhs) noexcept
+{
+	mView = Rhs.mView;
+	mSettings = Rhs.mSettings;
+	Rhs.mView = nullptr;
+
+	return *this;
+}
+
 ImageView::~ImageView()
 {
+	if (!mView) { return; }
+
 	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
 	vkDestroyImageView(Device, mView, nullptr);

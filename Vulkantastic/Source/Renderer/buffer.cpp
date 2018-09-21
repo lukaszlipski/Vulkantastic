@@ -34,12 +34,34 @@ Buffer::Buffer(std::initializer_list<uint32_t> QueueIndices, BufferUsage Flags, 
 	UploadData(Data, mSize, 0);
 }
 
+Buffer::Buffer(Buffer&& Rhs) noexcept
+{
+	*this = std::move(Rhs);
+}
+
+Buffer& Buffer::operator=(Buffer&& Rhs) noexcept
+{
+	mBuffer = Rhs.mBuffer;
+	Rhs.mBuffer = nullptr;
+
+	mAllocation = Rhs.mAllocation;
+	Rhs.mAllocation.Invalidate();
+
+	mSize = Rhs.mSize;
+	mQueueIndices = std::move(Rhs.mQueueIndices);
+	mFlags = Rhs.mFlags;
+	mMemoryRequirements = Rhs.mMemoryRequirements;
+	mGPUSide = Rhs.mGPUSide;
+
+	return *this;
+}
+
 Buffer::~Buffer()
 {
 	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
-	MemoryManager::Get().Free(mAllocation);
-	vkDestroyBuffer(Device, mBuffer, nullptr);
+	if (mAllocation.IsValid()) { MemoryManager::Get().Free(mAllocation); }
+	if (mBuffer) { vkDestroyBuffer(Device, mBuffer, nullptr); }
 }
 
 void Buffer::UploadData(const void* Data, uint32_t Size, uint32_t Offset /*= 0*/)

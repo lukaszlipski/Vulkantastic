@@ -99,6 +99,8 @@ public:
 	inline VkDeviceMemory GetMemory() const { return Memory; }
 	inline uint32_t GetMemoryIndex() const { return MemoryIndex; }
 	inline uint64_t GetSize() const { return Size; }
+	inline void Invalidate() { Size = 0; }
+	inline bool IsValid() const { return Size; }
 
 private:
 	uint64_t Size = 0;
