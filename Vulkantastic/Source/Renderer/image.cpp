@@ -119,7 +119,7 @@ void Image::ChangeLayout(ImageLayout DstLayout)
 	Transition.newLayout = static_cast<VkImageLayout>(DstLayout);
 	Transition.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	Transition.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	Transition.subresourceRange.aspectMask = mSettings.Format == ImageFormat::D24S8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	Transition.subresourceRange.aspectMask = mSettings.Format == ImageFormat::D24S8 ? VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 	Transition.subresourceRange.baseArrayLayer = 0;
 	Transition.subresourceRange.baseMipLevel = 0;
 	Transition.subresourceRange.layerCount = 1;
@@ -183,7 +183,7 @@ void Image::GenerateMipMaps()
 	Transition.image = mImage;
 	Transition.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	Transition.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	Transition.subresourceRange.aspectMask = mSettings.Format == ImageFormat::D24S8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	Transition.subresourceRange.aspectMask = mSettings.Format == ImageFormat::D24S8 ? VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 	Transition.subresourceRange.baseArrayLayer = 0;
 	Transition.subresourceRange.layerCount = 1;
 	Transition.subresourceRange.levelCount = 1;

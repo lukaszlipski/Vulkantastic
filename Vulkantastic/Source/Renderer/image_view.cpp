@@ -17,7 +17,7 @@ ImageView::ImageView(Image* DesiredImage, ImageViewSettings Settings)
 	ViewInfo.subresourceRange.levelCount = mSettings.MipMapLevelCount;
 	ViewInfo.subresourceRange.baseArrayLayer = mSettings.BaseArrayLevel;
 	ViewInfo.subresourceRange.layerCount = mSettings.ArrayLevelCount;
-	ViewInfo.subresourceRange.aspectMask = mSettings.Format == ImageFormat::D24S8 ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	ViewInfo.subresourceRange.aspectMask = mSettings.Format == ImageFormat::D24S8 ? VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 	ViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 	ViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 	ViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;

@@ -10,6 +10,7 @@
 #include "Renderer/command_buffer.h"
 #include "Renderer/image_view.h"
 #include "Renderer/sampler.h"
+#include "Renderer/render_pass.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -23,60 +24,14 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
 		// Render Pass
-		VkRenderPass RenderPass = nullptr;
+		ColorAttachment Color = {};
+		Color.EndLayout = ImageLayout::PRESENT_SRC;
+		Color.Format = static_cast<ImageFormat>(VulkanCore::Get().GetSwapChain()->GetFormat().format);
 
-		std::array<VkAttachmentDescription, 1> Attachments = {};
-		Attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		Attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		Attachments[0].format = VulkanCore::Get().GetSwapChain()->GetFormat().format;
-		Attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		Attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		Attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		Attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		Attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+		DepthAttachment Depth = {};
+		Depth.Enable = true;
 
-		//Attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		//Attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		//Attachments[1].format = VK_FORMAT_D24_UNORM_S8_UINT;
-		//Attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		//Attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		//Attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-		//Attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		//Attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-		VkAttachmentReference ColorAttachmentRef = {};
-		ColorAttachmentRef.attachment = 0;
-		ColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference StencilDepthAttachmentRef = {};
-		StencilDepthAttachmentRef.attachment = 1;
-		StencilDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription SubpassDesc = {};
-		SubpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		SubpassDesc.colorAttachmentCount = 1;
-		SubpassDesc.pColorAttachments = &ColorAttachmentRef;
-		//SubpassDesc.pDepthStencilAttachment = &StencilDepthAttachmentRef;
-		SubpassDesc.pDepthStencilAttachment = nullptr;
-
-		VkSubpassDependency SubpassDependency = {};
-		SubpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		SubpassDependency.dstSubpass = 0;
-		SubpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		SubpassDependency.srcAccessMask = 0;
-		SubpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		SubpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-		VkRenderPassCreateInfo RenderPassInfo = {};
-		RenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		RenderPassInfo.subpassCount = 1;
-		RenderPassInfo.pSubpasses = &SubpassDesc;
-		RenderPassInfo.attachmentCount = static_cast<uint32_t>(Attachments.size());
-		RenderPassInfo.pAttachments = Attachments.data();
-		RenderPassInfo.dependencyCount = 1;
-		RenderPassInfo.pDependencies = &SubpassDependency;
-
-		vkCreateRenderPass(Device, &RenderPassInfo, nullptr, &RenderPass);
+		RenderPass GraphicsRenderPass({ Color }, Depth);
 
 		// Viewport
 		VkExtent2D Extend = VulkanCore::Get().GetDevice()->GetSurfaceCapabilities().currentExtent;
@@ -102,12 +57,11 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		VkPipeline GraphicsPipeline = nullptr;
 		VkGraphicsPipelineCreateInfo GraphicsPipelineInfo = {};
 		GraphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		GraphicsPipelineInfo.renderPass = RenderPass;
+		GraphicsPipelineInfo.renderPass = GraphicsRenderPass.GetRenderPass();
 		GraphicsPipelineInfo.pViewportState = &ViewportInfo;
 
 		PipelineCreation::DynamicState Dynamic{};
 		GraphicsPipelineInfo.pDynamicState = &Dynamic.GetDynamicState();
-		//GraphicsPipelineInfo.pDynamicState = nullptr;
 
 		PipelineCreation::PipelineLayout PipelineLayout({ VertexShader, FragmentShader });
 		GraphicsPipelineInfo.layout = PipelineLayout.GetPipelineLayout();
@@ -119,8 +73,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		GraphicsPipelineInfo.pColorBlendState = &ColorBlend.GetColorBlendState();
 
 		PipelineCreation::DepthStencilState DepthStencil{};
-		//GraphicsPipelineInfo.pDepthStencilState = &DepthStencil.GetDepthStencilState();
-		GraphicsPipelineInfo.pDepthStencilState = nullptr;
+		GraphicsPipelineInfo.pDepthStencilState = &DepthStencil.GetDepthStencilState();
 
 		PipelineCreation::MultisampleState Multisample{};
 		GraphicsPipelineInfo.pMultisampleState = &Multisample.GetMultisampleState();
@@ -195,6 +148,24 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		ViewSettings.Format = ImageFormat::R8G8B8A8;
 
 		ImageView View(&ImageBuffer, ViewSettings);
+
+		// Create depth buffer
+		ImageSettings DepthSettings = {};
+		DepthSettings.Depth = 1;
+		DepthSettings.Height = Extend.height;
+		DepthSettings.Width = Extend.width;
+		DepthSettings.Format = ImageFormat::D24S8;
+		DepthSettings.Type = ImageType::TWODIM;
+		DepthSettings.Mipmaps = false;
+
+		Image DepthBuffer({ GraphicsQueueIndex }, ImageUsage::DEPTH_ATTACHMENT, true, DepthSettings);
+		DepthBuffer.ChangeLayout(ImageLayout::DEPTH_STENCIL_ATTACHMENT);
+
+		// Create depth view
+		ImageViewSettings DepthViewSettings = {};
+		DepthViewSettings.Format = ImageFormat::D24S8;
+
+		ImageView DepthView(&DepthBuffer, DepthViewSettings);
 
 		// Create sampler
 		SamplerSettings SamplerInstSettings = {};
@@ -297,15 +268,16 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		{
 
 			VkImageView Attachments[] = {
-				ImageViews[i]
+				ImageViews[i],
+				DepthView.GetView()
 			};
 
 			VkFramebufferCreateInfo Info = {};
 			Info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			Info.attachmentCount = 1;
+			Info.attachmentCount = 2;
 			Info.pAttachments = Attachments;
 			Info.layers = 1;
-			Info.renderPass = RenderPass;
+			Info.renderPass = GraphicsRenderPass.GetRenderPass();
 			Info.height = Extend.height;
 			Info.width = Extend.width;
 
@@ -325,15 +297,15 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 			Cb->Begin(CBUsage::SIMULTANEOUS);
 
-			const VkClearValue Clear[] = { { 0, 0, 0, 1 } };
+			const VkClearValue Clear[] = { { 0, 0, 0, 1 }, { 1.0f, 0.0f } };
 
 			VkRenderPassBeginInfo RenderPassBeginInfo = {};
 			RenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			RenderPassBeginInfo.framebuffer = Framebuffers[i];
-			RenderPassBeginInfo.renderPass = RenderPass;
+			RenderPassBeginInfo.renderPass = GraphicsRenderPass.GetRenderPass();
 			RenderPassBeginInfo.renderArea.offset = { 0,0 };
 			RenderPassBeginInfo.renderArea.extent = Extend;
-			RenderPassBeginInfo.clearValueCount = 1;
+			RenderPassBeginInfo.clearValueCount = 2;
 			RenderPassBeginInfo.pClearValues = Clear;
 
 			vkCmdBeginRenderPass(Cb->GetCommandBuffer(), &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
