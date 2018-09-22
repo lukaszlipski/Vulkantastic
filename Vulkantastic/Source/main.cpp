@@ -32,32 +32,16 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		RenderPass GraphicsRenderPass({ Color }, Depth);
 
-		// Viewport
-		VkExtent2D Extend = VulkanCore::Get().GetDevice()->GetSurfaceCapabilities().currentExtent;
-
-		VkViewport Viewport = {};
-		Viewport.width = static_cast<float>(Extend.width);
-		Viewport.height = static_cast<float>(Extend.height);
-		Viewport.maxDepth = 1.0f;
-		Viewport.minDepth = 0.0f;
-
-		VkRect2D Scissor = {};
-		Scissor.extent = Extend;
-		Scissor.offset = { 0,0 };
-
-		VkPipelineViewportStateCreateInfo ViewportInfo = {};
-		ViewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		ViewportInfo.scissorCount = 1;
-		ViewportInfo.pScissors = &Scissor;
-		ViewportInfo.viewportCount = 1;
-		ViewportInfo.pViewports = &Viewport;
-
 		// Pipeline
 		VkPipeline GraphicsPipeline = nullptr;
 		VkGraphicsPipelineCreateInfo GraphicsPipelineInfo = {};
 		GraphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		GraphicsPipelineInfo.renderPass = GraphicsRenderPass.GetRenderPass();
-		GraphicsPipelineInfo.pViewportState = &ViewportInfo;
+
+		VkExtent2D Extend = VulkanCore::Get().GetDevice()->GetSurfaceCapabilities().currentExtent;
+		PipelineCreation::ViewportSize ViewportSize{ Extend.width, Extend.height };
+		PipelineCreation::ViewportState ViewportState( { ViewportSize } );
+		GraphicsPipelineInfo.pViewportState = &ViewportState.GetViewportState();
 
 		PipelineCreation::DynamicState Dynamic{};
 		GraphicsPipelineInfo.pDynamicState = &Dynamic.GetDynamicState();
@@ -289,7 +273,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		const int32_t GraphicsIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
 
-		for (int32_t i = 0; i < Framebuffers.size(); ++i)
+		for (auto & Framebuffer : Framebuffers)
 		{
 			CommandBuffer* Cb = new CommandBuffer(GraphicsIndex);
 			CommandBuffers.push_back(Cb);
@@ -300,7 +284,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 			VkRenderPassBeginInfo RenderPassBeginInfo = {};
 			RenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			RenderPassBeginInfo.framebuffer = Framebuffers[i];
+			RenderPassBeginInfo.framebuffer = Framebuffer;
 			RenderPassBeginInfo.renderPass = GraphicsRenderPass.GetRenderPass();
 			RenderPassBeginInfo.renderArea.offset = { 0,0 };
 			RenderPassBeginInfo.renderArea.extent = Extend;
@@ -315,7 +299,9 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			auto InstBufferTmp = VertexBufferInst.GetBuffer();
 			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 1, 1, &InstBufferTmp, Offsets);
 			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
-			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, 1, &Viewport);
+
+			auto Viewports = ViewportState.GetViewports();
+			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, static_cast<uint32_t>(Viewports.size()), Viewports.data());
 			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout.GetPipelineLayout(), 0, 1, &DescriptorSet, 0, nullptr);
 			vkCmdDrawIndexed(Cb->GetCommandBuffer(), Indicies.size(), 3, 0, 0, 0);
 			vkCmdEndRenderPass(Cb->GetCommandBuffer());

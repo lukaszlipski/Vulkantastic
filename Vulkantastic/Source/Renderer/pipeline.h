@@ -146,6 +146,27 @@ namespace PipelineCreation
 		std::vector<VkVertexInputAttributeDescription> mInputsAttributs;
 	};
 
+	struct ViewportSize
+	{
+		float Width = 0;
+		float Height = 0;
+	};
+
+	class ViewportState
+	{
+	public:
+		ViewportState(std::initializer_list<ViewportSize> Sizes);
+
+		inline VkPipelineViewportStateCreateInfo GetViewportState() const { return mViewportState; }
+		inline std::vector<VkViewport> GetViewports() const { return mViewports; }
+		inline std::vector<VkRect2D> GetScissors() const { return mScissors; }
+
+	private:
+		VkPipelineViewportStateCreateInfo mViewportState = {};
+		std::vector<VkViewport> mViewports;
+		std::vector<VkRect2D> mScissors;
+
+	};
 
 	class PipelineLayout
 	{

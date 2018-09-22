@@ -139,6 +139,35 @@ namespace PipelineCreation
 
 	}
 
+	ViewportState::ViewportState(std::initializer_list<ViewportSize> Sizes)
+	{
+		mViewports.reserve(Sizes.size());
+		mScissors.reserve(Sizes.size());
+
+		for (auto& Size : Sizes)
+		{
+			VkViewport Viewport = {};
+			Viewport.width = Size.Width;
+			Viewport.height = Size.Height;
+			Viewport.maxDepth = 1.0f;
+			Viewport.minDepth = 0.0f;
+
+			VkRect2D Scissor = {};
+			Scissor.extent = { static_cast<uint32_t>(Size.Width), static_cast<uint32_t>(Size.Height) };
+			Scissor.offset = { 0,0 };
+			
+			mViewports.push_back(Viewport);
+			mScissors.push_back(Scissor);
+		}
+
+		mViewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		mViewportState.scissorCount = static_cast<uint32_t>(mScissors.size());
+		mViewportState.pScissors = mScissors.data();
+		mViewportState.viewportCount = static_cast<uint32_t>(mViewports.size());
+		mViewportState.pViewports = mViewports.data();
+
+	}
+
 	PipelineLayout::PipelineLayout(std::initializer_list<Shader*> Shaders)
 	{
 		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
