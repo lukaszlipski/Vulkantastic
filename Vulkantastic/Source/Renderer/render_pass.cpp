@@ -3,26 +3,17 @@
 
 
 RenderPass::RenderPass(const std::vector<ColorAttachment>& Colors, DepthAttachment Depth)
+	: mColorAttachments(Colors), mDepthAttachment(Depth), mDepthEnabled(true)
 {
-	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
-
 	std::vector<VkAttachmentDescription> Attachments;
-	Attachments.resize(Colors.size());
+	Attachments.reserve(mColorAttachments.size() + 1);
 	std::vector<VkAttachmentReference> AttachmentRefs;
-	AttachmentRefs.reserve(Colors.size());
+	AttachmentRefs.reserve(mColorAttachments.size() + 1);
 
-	auto Attachment = Attachments.begin();
-	auto AttachmentRef = AttachmentRefs.begin();
-	for (auto Color = Colors.begin(); Color != Colors.end(); ++Color, ++Attachment)
+	for (const auto & Color : mColorAttachments)
 	{
-		Attachment->format = static_cast<VkFormat>(Color->Format);
-		Attachment->initialLayout = static_cast<VkImageLayout>(Color->StartLayout);
-		Attachment->finalLayout = static_cast<VkImageLayout>(Color->EndLayout);
-		Attachment->loadOp = static_cast<VkAttachmentLoadOp>(Color->LoadOp);
-		Attachment->storeOp = static_cast<VkAttachmentStoreOp>(Color->StoreOp);
-		Attachment->samples = VK_SAMPLE_COUNT_1_BIT;
-		Attachment->stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		Attachment->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		VkAttachmentDescription Attachment = CreateColorAttachment(Color);
+		Attachments.push_back(Attachment);
 
 		VkAttachmentReference ColorAttachmentRef = {};
 		ColorAttachmentRef.attachment = static_cast<uint32_t>(AttachmentRefs.size());
@@ -31,32 +22,85 @@ RenderPass::RenderPass(const std::vector<ColorAttachment>& Colors, DepthAttachme
 		AttachmentRefs.push_back(ColorAttachmentRef);
 	}
 
+	VkAttachmentDescription Attachment = CreateDepthAttachment(mDepthAttachment);
+	Attachments.push_back(Attachment);	
 
 	VkAttachmentReference DepthAttachmentRef = {};
+	DepthAttachmentRef.attachment = static_cast<uint32_t>(AttachmentRefs.size());
+	DepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	if (Depth.Enable)
+	CreateRenderPass(Attachments, AttachmentRefs, &DepthAttachmentRef);
+}
+
+RenderPass::RenderPass(const std::vector<ColorAttachment>& Colors)
+	: mColorAttachments(Colors), mDepthEnabled(false)
+{
+	std::vector<VkAttachmentDescription> Attachments;
+	Attachments.reserve(mColorAttachments.size());
+	std::vector<VkAttachmentReference> AttachmentRefs;
+	AttachmentRefs.reserve(mColorAttachments.size());
+
+	for (const auto & Color : mColorAttachments)
 	{
-		VkAttachmentDescription Attachment = {};
-		Attachment.format = VK_FORMAT_D24_UNORM_S8_UINT;
-		Attachment.initialLayout = static_cast<VkImageLayout>(Depth.StartLayout);
-		Attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		Attachment.loadOp = static_cast<VkAttachmentLoadOp>(Depth.DepthLoadOp);
-		Attachment.storeOp = static_cast<VkAttachmentStoreOp>(Depth.DepthStoreOp);
-		Attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		Attachment.stencilLoadOp = static_cast<VkAttachmentLoadOp>(Depth.StencilLoadOp);
-		Attachment.stencilStoreOp = static_cast<VkAttachmentStoreOp>(Depth.StencilStoreOp);
-
+		VkAttachmentDescription Attachment = CreateColorAttachment(Color);
 		Attachments.push_back(Attachment);
 
-		DepthAttachmentRef.attachment = static_cast<uint32_t>(AttachmentRefs.size());
-		DepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		VkAttachmentReference ColorAttachmentRef = {};
+		ColorAttachmentRef.attachment = static_cast<uint32_t>(AttachmentRefs.size());
+		ColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		AttachmentRefs.push_back(ColorAttachmentRef);
 	}
+
+	CreateRenderPass(Attachments, AttachmentRefs, nullptr);
+}
+
+RenderPass::RenderPass(RenderPass&& Rhs) noexcept
+{
+	*this = std::move(Rhs);
+}
+
+VkAttachmentDescription RenderPass::CreateColorAttachment(const ColorAttachment& AttachmentInfo) const
+{
+	VkAttachmentDescription Result = {};
+
+	Result.format = static_cast<VkFormat>(AttachmentInfo.Format);
+	Result.initialLayout = static_cast<VkImageLayout>(AttachmentInfo.StartLayout);
+	Result.finalLayout = static_cast<VkImageLayout>(AttachmentInfo.EndLayout);
+	Result.loadOp = static_cast<VkAttachmentLoadOp>(AttachmentInfo.LoadOp);
+	Result.storeOp = static_cast<VkAttachmentStoreOp>(AttachmentInfo.StoreOp);
+	Result.samples = VK_SAMPLE_COUNT_1_BIT;
+	Result.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	Result.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	return Result;
+}
+
+VkAttachmentDescription RenderPass::CreateDepthAttachment(const DepthAttachment& AttachmentInfo) const
+{
+	VkAttachmentDescription Result = {};
+
+	Result.format = VK_FORMAT_D24_UNORM_S8_UINT;
+	Result.initialLayout = static_cast<VkImageLayout>(AttachmentInfo.StartLayout);
+	Result.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	Result.loadOp = static_cast<VkAttachmentLoadOp>(AttachmentInfo.DepthLoadOp);
+	Result.storeOp = static_cast<VkAttachmentStoreOp>(AttachmentInfo.DepthStoreOp);
+	Result.samples = VK_SAMPLE_COUNT_1_BIT;
+	Result.stencilLoadOp = static_cast<VkAttachmentLoadOp>(AttachmentInfo.StencilLoadOp);
+	Result.stencilStoreOp = static_cast<VkAttachmentStoreOp>(AttachmentInfo.StencilStoreOp);
+
+	return Result;
+}
+
+void RenderPass::CreateRenderPass(const std::vector<VkAttachmentDescription>& Attachments, const std::vector<VkAttachmentReference>& AttachmentRefs, VkAttachmentReference* DepthAttachmentRef)
+{
+	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
 	VkSubpassDescription SubpassDesc = {};
 	SubpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	SubpassDesc.colorAttachmentCount = 1;
 	SubpassDesc.pColorAttachments = AttachmentRefs.data();
-	SubpassDesc.pDepthStencilAttachment = Depth.Enable ? &DepthAttachmentRef : nullptr;
+	SubpassDesc.pDepthStencilAttachment = DepthAttachmentRef;
 
 	VkSubpassDependency SubpassDependency = {};
 	SubpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -76,12 +120,6 @@ RenderPass::RenderPass(const std::vector<ColorAttachment>& Colors, DepthAttachme
 	RenderPassInfo.pDependencies = &SubpassDependency;
 
 	Assert(vkCreateRenderPass(Device, &RenderPassInfo, nullptr, &mRenderPass) == VK_SUCCESS);
-
-}
-
-RenderPass::RenderPass(RenderPass&& Rhs) noexcept
-{
-	*this = std::move(Rhs);
 }
 
 RenderPass& RenderPass::operator=(RenderPass&& Rhs) noexcept

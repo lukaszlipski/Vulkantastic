@@ -25,7 +25,6 @@ struct ColorAttachment
 
 struct DepthAttachment
 {
-	bool Enable = false;
 	ImageLayout StartLayout = ImageLayout::UNDEFINED;
 	AttachmentLoadOp DepthLoadOp = AttachmentLoadOp::CLEAR;
 	AttachmentStoreOp DepthStoreOp = AttachmentStoreOp::STORE;
@@ -36,7 +35,8 @@ struct DepthAttachment
 class RenderPass
 {
 public:
-	RenderPass(const std::vector<ColorAttachment>& Colors, DepthAttachment Depth = {});
+	RenderPass(const std::vector<ColorAttachment>& Colors);
+	RenderPass(const std::vector<ColorAttachment>& Colors, DepthAttachment Depth);
 	~RenderPass();
 
 	RenderPass(const RenderPass& Rhs) = delete;
@@ -46,8 +46,19 @@ public:
 	RenderPass& operator=(RenderPass&& Rhs) noexcept;
 
 	inline VkRenderPass GetRenderPass() const { return mRenderPass; }
+	inline std::vector<ColorAttachment> GetColorAttachments() const { return mColorAttachments; }
+	inline DepthAttachment GetDepthAttachment() const { return mDepthAttachment; }
+	inline bool IsDepthEnabled() const { return mDepthEnabled; }
 
 private:
+	VkAttachmentDescription CreateColorAttachment(const ColorAttachment& AttachmentInfo) const;
+	VkAttachmentDescription CreateDepthAttachment(const DepthAttachment& AttachmentInfo) const;
+	void CreateRenderPass(const std::vector<VkAttachmentDescription>& Attachments, const std::vector<VkAttachmentReference>& AttachmentRefs, VkAttachmentReference* DepthAttachmentRef);
+
 	VkRenderPass mRenderPass = nullptr;
+	std::vector<ColorAttachment> mColorAttachments;
+	DepthAttachment mDepthAttachment = {};
+	bool mDepthEnabled = false;
+
 };
 

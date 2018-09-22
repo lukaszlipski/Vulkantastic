@@ -29,7 +29,6 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		Color.Format = static_cast<ImageFormat>(VulkanCore::Get().GetSwapChain()->GetFormat().format);
 
 		DepthAttachment Depth = {};
-		Depth.Enable = true;
 
 		RenderPass GraphicsRenderPass({ Color }, Depth);
 
