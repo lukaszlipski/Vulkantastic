@@ -1,5 +1,6 @@
 #pragma once
 #include "image.h"
+#include "pipeline_creation.h"
 
 enum class AttachmentLoadOp
 {
@@ -21,6 +22,9 @@ struct ColorAttachment
 	ImageFormat Format = ImageFormat::R8G8B8A8;
 	AttachmentLoadOp LoadOp = AttachmentLoadOp::CLEAR;
 	AttachmentStoreOp StoreOp = AttachmentStoreOp::STORE;
+	BlendMode Blend = BlendMode::Opaque;
+	float Width = 0.0f;
+	float Height = 0.0f;
 };
 
 struct DepthAttachment

@@ -1,7 +1,6 @@
 #include "Utilities/Engine.h"
 #include <array>
 #include "Renderer/vertex_definitions.h"
-#include "Renderer/pipeline.h"
 #include "Utilities/assert.h"
 #include "Renderer/buffer.h"
 #include "Renderer/image.h"
@@ -10,7 +9,7 @@
 #include "Renderer/command_buffer.h"
 #include "Renderer/image_view.h"
 #include "Renderer/sampler.h"
-#include "Renderer/render_pass.h"
+#include "Renderer/pipeline.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -22,57 +21,23 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 	// Start - Raw vulkan
 	{
 		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
+		VkExtent2D Extend = VulkanCore::Get().GetDevice()->GetSurfaceCapabilities().currentExtent;
 
 		// Render Pass
 		ColorAttachment Color = {};
 		Color.EndLayout = ImageLayout::PRESENT_SRC;
 		Color.Format = static_cast<ImageFormat>(VulkanCore::Get().GetSwapChain()->GetFormat().format);
+		Color.Width = Extend.width;
+		Color.Height = Extend.height;
 
 		DepthAttachment Depth = {};
 
 		RenderPass GraphicsRenderPass({ Color }, Depth);
 
 		// Pipeline
-		VkPipeline GraphicsPipeline = nullptr;
-		VkGraphicsPipelineCreateInfo GraphicsPipelineInfo = {};
-		GraphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		GraphicsPipelineInfo.renderPass = GraphicsRenderPass.GetRenderPass();
+		PipelineShaders Shaders{ VertexShader, FragmentShader };
 
-		VkExtent2D Extend = VulkanCore::Get().GetDevice()->GetSurfaceCapabilities().currentExtent;
-		PipelineCreation::ViewportSize ViewportSize{ Extend.width, Extend.height };
-		PipelineCreation::ViewportState ViewportState( { ViewportSize } );
-		GraphicsPipelineInfo.pViewportState = &ViewportState.GetViewportState();
-
-		PipelineCreation::DynamicState Dynamic{};
-		GraphicsPipelineInfo.pDynamicState = &Dynamic.GetDynamicState();
-
-		PipelineCreation::PipelineLayout PipelineLayout({ VertexShader, FragmentShader });
-		GraphicsPipelineInfo.layout = PipelineLayout.GetPipelineLayout();
-
-		PipelineCreation::VertexInputState VertexInput(VertexShader, { VertexDefinition::Simple::VertexFormatInfo, VertexDefinition::SimpleInstanced::VertexFormatInfo });
-		GraphicsPipelineInfo.pVertexInputState = &VertexInput.GetVertexInputState();
-
-		PipelineCreation::ColorBlendState ColorBlend({ {PipelineCreation::AttachmentFlag::R | PipelineCreation::AttachmentFlag::G | PipelineCreation::AttachmentFlag::B | PipelineCreation::AttachmentFlag::A, false} });
-		GraphicsPipelineInfo.pColorBlendState = &ColorBlend.GetColorBlendState();
-
-		PipelineCreation::DepthStencilState DepthStencil{};
-		GraphicsPipelineInfo.pDepthStencilState = &DepthStencil.GetDepthStencilState();
-
-		PipelineCreation::MultisampleState Multisample{};
-		GraphicsPipelineInfo.pMultisampleState = &Multisample.GetMultisampleState();
-
-		PipelineCreation::RasterizationState Rasterization{};
-		GraphicsPipelineInfo.pRasterizationState = &Rasterization.GetRasterizationState();
-
-		PipelineCreation::InputAssemblyState InputAssembly{};
-		GraphicsPipelineInfo.pInputAssemblyState = &InputAssembly.GetInputAssemblyState();
-
-		PipelineCreation::ShaderPipeline ShaderPip(VertexShader, FragmentShader);
-		auto ShaderPipelineInformation = ShaderPip.GetShaderPipelineState();
-		GraphicsPipelineInfo.pStages = ShaderPipelineInformation.data();
-		GraphicsPipelineInfo.stageCount = static_cast<uint32_t>(ShaderPipelineInformation.size());
-
-		vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineInfo, nullptr, &GraphicsPipeline);
+		GraphicsPipeline<VertexDefinition::Simple, VertexDefinition::SimpleInstanced> Pipeline(GraphicsRenderPass, Shaders);
 
 		// Vertex buffer data
 		const std::vector<VertexDefinition::Simple> Vertices = {
@@ -179,7 +144,8 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		AllocDescriptorSetInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		AllocDescriptorSetInfo.descriptorPool = DescriptorPool;
 		AllocDescriptorSetInfo.descriptorSetCount = 1;
-		auto DescLayout = PipelineLayout.GetDescriptorSetLayout();
+
+		auto DescLayout = Pipeline.GetPipelineLayout()->GetDescriptorSetLayout();
 		AllocDescriptorSetInfo.pSetLayouts = &DescLayout;
 
 		VkDescriptorSet DescriptorSet;
@@ -292,7 +258,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			RenderPassBeginInfo.pClearValues = Clear;
 
 			vkCmdBeginRenderPass(Cb->GetCommandBuffer(), &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdBindPipeline(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
+			vkCmdBindPipeline(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline.GetPipeline());
 			VkDeviceSize Offsets[] = { 0 };
 			auto BufferTmp = VertexBuffer.GetBuffer();
 			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 0, 1, &BufferTmp, Offsets);
@@ -300,9 +266,9 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 1, 1, &InstBufferTmp, Offsets);
 			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
 
-			auto Viewports = ViewportState.GetViewports();
+			auto Viewports = Pipeline.GetViewportState()->GetViewports();
 			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, static_cast<uint32_t>(Viewports.size()), Viewports.data());
-			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout.GetPipelineLayout(), 0, 1, &DescriptorSet, 0, nullptr);
+			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline.GetPipelineLayout()->GetPipelineLayout(), 0, 1, &DescriptorSet, 0, nullptr);
 			vkCmdDrawIndexed(Cb->GetCommandBuffer(), Indicies.size(), 3, 0, 0, 0);
 			vkCmdEndRenderPass(Cb->GetCommandBuffer());
 

@@ -84,6 +84,7 @@ public:
 	inline uint32_t GetMipMapsCount() const { return mMipMapsCount; }
 
 	static uint8_t GetNumComponentsByFormat(ImageFormat Format);
+	static int32_t GetSizeInBytesByFormat(ImageFormat Format);
 
 private:
 	VkImage mImage = nullptr;

@@ -1,199 +1,124 @@
 #pragma once
-#include "core.h"
-#include <vector>
-#include "vertex_definitions_inc.h"
+#include "vulkan/vulkan_core.h"
+#include "render_pass.h"
+#include <memory>
 
-class Shader;
-
-enum class PipelineStage
+class PipelineShaders
 {
-	START = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-	VERTEX_INPUT = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-	VERTEX = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
-	FRAGMENT = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-	COLOR_ATTACHMENT = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-	COMPUTE = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-	TRANSER = VK_PIPELINE_STAGE_TRANSFER_BIT,
-	END = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+public:
+	PipelineShaders(std::initializer_list<Shader*> Shaders);
+
+	inline Shader* GetVertexShader() const { return mVertex; }
+	inline Shader* GetFragmentShader() const { return mFragment; }
+
+private:
+	Shader* mVertex = nullptr;
+	Shader* mFragment = nullptr;
 };
 
-namespace PipelineCreation
+template<typename ...VertexDef>
+class GraphicsPipeline
 {
+public:
+	GraphicsPipeline(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders);
+	~GraphicsPipeline();
 
-	class ShaderPipeline
+	GraphicsPipeline(const GraphicsPipeline& Rhs) = delete;
+	GraphicsPipeline& operator=(const GraphicsPipeline& Rhs) = delete;
+
+	GraphicsPipeline(GraphicsPipeline&& Rhs) = delete;
+	GraphicsPipeline& operator=(GraphicsPipeline&& Rhs) = delete;
+
+	inline VkPipeline GetPipeline() const { return mPipeline; }
+	PipelineCreation::PipelineLayout* GetPipelineLayout() { return mPipelineLayout; }
+	PipelineCreation::ViewportState* GetViewportState() { return mViewportState; }
+
+private:
+	VkPipeline mPipeline = nullptr;
+	PipelineCreation::PipelineLayout* mPipelineLayout = nullptr;
+	PipelineCreation::ViewportState* mViewportState = nullptr;
+	
+};
+
+template<typename ...VertexDef>
+GraphicsPipeline<VertexDef...>::GraphicsPipeline(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders)
+{
+	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
+
+	VkGraphicsPipelineCreateInfo GraphicsPipelineInfo = {};
+	GraphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	GraphicsPipelineInfo.renderPass = GraphicsRenderPass.GetRenderPass();
+
+	const auto& ColorAttachments = GraphicsRenderPass.GetColorAttachments();
+	std::vector<PipelineCreation::ViewportSize> Viewports;
+	Viewports.reserve(ColorAttachments.size());
+
+	for (auto& Attachment : ColorAttachments)
 	{
-	public:
-		ShaderPipeline(class Shader* Vertex, class Shader* Fragment);
-
-		inline std::vector<VkPipelineShaderStageCreateInfo> GetShaderPipelineState() const { return mShaderPipeline; }
-
-	private:
-		std::vector<VkPipelineShaderStageCreateInfo> mShaderPipeline;
-
-	};
-
-	enum class DepthCompareOP
-	{
-		LESS = 0
-	};
-
-	class DepthStencilState
-	{
-	public:
-		DepthStencilState(DepthCompareOP CompareOP = DepthCompareOP::LESS, bool EnableWrite = true, bool EnableTest = true, bool EnableStencil = false, float Min = 0.0f, float Max = 1.0f);
-
-		inline VkPipelineDepthStencilStateCreateInfo GetDepthStencilState() const { return mDepthStencil; }
-
-	private:
-		VkPipelineDepthStencilStateCreateInfo mDepthStencil = {};
-
-	};
-
-	enum class AttachmentFlag : uint8_t
-	{
-		R = VK_COLOR_COMPONENT_R_BIT,
-		G = VK_COLOR_COMPONENT_G_BIT,
-		B = VK_COLOR_COMPONENT_B_BIT,
-		A = VK_COLOR_COMPONENT_A_BIT
-	};
-
-	inline AttachmentFlag operator|(AttachmentFlag Left, AttachmentFlag Right)
-	{
-		return static_cast<AttachmentFlag>(static_cast<uint8_t>(Left) | static_cast<uint8_t>(Right));
+		Viewports.push_back({ Attachment.Width, Attachment.Height });
 	}
 
-	class BlendDef
+	mViewportState = new PipelineCreation::ViewportState(Viewports);
+	GraphicsPipelineInfo.pViewportState = &mViewportState->GetViewportState();
+	
+	PipelineCreation::DynamicState Dynamic{};
+	GraphicsPipelineInfo.pDynamicState = &Dynamic.GetDynamicState();
+
+	mPipelineLayout = new PipelineCreation::PipelineLayout{ Shaders.GetVertexShader(), Shaders.GetFragmentShader() };
+	GraphicsPipelineInfo.layout = mPipelineLayout->GetPipelineLayout();
+
+	PipelineCreation::VertexInputState VertexInput(Shaders.GetVertexShader(), { (VertexDef::VertexFormatInfo)... });
+	GraphicsPipelineInfo.pVertexInputState = &VertexInput.GetVertexInputState();
+
+	std::vector<PipelineCreation::BlendDef> ColorBlends;
+	ColorBlends.reserve(ColorAttachments.size());
+	for (auto& Attachment : ColorAttachments)
 	{
-	public:
-		BlendDef(AttachmentFlag Components, bool EnableBlend = false);
+		const auto NumComp = Image::GetNumComponentsByFormat(Attachment.Format);
 
-		inline VkPipelineColorBlendAttachmentState GetState() const { return mState; }
+		auto Flags = static_cast<PipelineCreation::AttachmentFlag>(0);
 
-	private:
-		VkPipelineColorBlendAttachmentState mState = {};
-	};
+		for (uint8_t i = 1; i <= NumComp; ++i)
+		{
+			Flags = Flags | static_cast<PipelineCreation::AttachmentFlag>(i);
+		}
 
-	class ColorBlendState
+		ColorBlends.emplace_back( Flags, Attachment.Blend );
+	}
+
+	PipelineCreation::ColorBlendState ColorBlend(ColorBlends);
+	GraphicsPipelineInfo.pColorBlendState = &ColorBlend.GetColorBlendState();
+
+	PipelineCreation::DepthStencilState DepthStencil{};
+	GraphicsPipelineInfo.pDepthStencilState = &DepthStencil.GetDepthStencilState();
+
+	PipelineCreation::MultisampleState Multisample{};
+	GraphicsPipelineInfo.pMultisampleState = &Multisample.GetMultisampleState();
+
+	PipelineCreation::RasterizationState Rasterization{};
+	GraphicsPipelineInfo.pRasterizationState = &Rasterization.GetRasterizationState();
+
+	PipelineCreation::InputAssemblyState InputAssembly{};
+	GraphicsPipelineInfo.pInputAssemblyState = &InputAssembly.GetInputAssemblyState();
+
+	PipelineCreation::ShaderPipeline ShaderPip(Shaders.GetVertexShader(), Shaders.GetFragmentShader());
+	auto ShaderPipelineInformation = ShaderPip.GetShaderPipelineState();
+	GraphicsPipelineInfo.pStages = ShaderPipelineInformation.data();
+	GraphicsPipelineInfo.stageCount = static_cast<uint32_t>(ShaderPipelineInformation.size());
+
+	vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &GraphicsPipelineInfo, nullptr, &mPipeline);
+}
+
+
+template<typename ...VertexDef>
+GraphicsPipeline<VertexDef...>::~GraphicsPipeline()
+{
+	if (mPipeline)
 	{
-	public:
-		ColorBlendState(std::initializer_list<BlendDef> AttachmentDefinitions);
+		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
-		inline VkPipelineColorBlendStateCreateInfo GetColorBlendState() const { return mColorBlendState; }
-
-	private:
-		VkPipelineColorBlendStateCreateInfo mColorBlendState = {};
-		std::vector<VkPipelineColorBlendAttachmentState> mAttachemntStates;
-	};
-
-	enum class CullMode
-	{
-		FRONT = VK_CULL_MODE_FRONT_BIT,
-		BACK = VK_CULL_MODE_BACK_BIT,
-		FRONTBACK = VK_CULL_MODE_FRONT_AND_BACK
-	};
-
-	enum class FrontFace
-	{
-		CLOCKWISE = VK_FRONT_FACE_CLOCKWISE,
-		COUNTERCLOCKWISE = VK_FRONT_FACE_COUNTER_CLOCKWISE
-	};
-
-
-	class RasterizationState
-	{
-	public:
-		RasterizationState(CullMode Cull = CullMode::BACK, FrontFace FaceDir = FrontFace::CLOCKWISE);
-
-		inline VkPipelineRasterizationStateCreateInfo GetRasterizationState() const { return mRasterizationState; }
-	private:
-		VkPipelineRasterizationStateCreateInfo mRasterizationState = {};
-	};
-
-
-	class MultisampleState
-	{
-	public:
-		MultisampleState(bool Enable = false, uint8_t SampleCount = 1);
-
-		inline VkPipelineMultisampleStateCreateInfo GetMultisampleState() const { return mMultisampleState; }
-	private:
-		VkPipelineMultisampleStateCreateInfo mMultisampleState = {};
-	};
-
-
-	class InputAssemblyState
-	{
-	public:
-		InputAssemblyState();
-
-		inline VkPipelineInputAssemblyStateCreateInfo GetInputAssemblyState() const { return mInputAssemblyState; }
-
-	private:
-		VkPipelineInputAssemblyStateCreateInfo mInputAssemblyState = {};
-	};
-
-
-	class VertexInputState
-	{
-	public:
-
-		VertexInputState(Shader* VertexShader, std::initializer_list<VertexFormatDeclaration> VertexFormats);
-
-		inline VkPipelineVertexInputStateCreateInfo GetVertexInputState() const { return mVertexInputState; }
-	private:
-		VkPipelineVertexInputStateCreateInfo mVertexInputState = {};
-		std::vector<VkVertexInputBindingDescription> mInputBindings;
-		std::vector<VkVertexInputAttributeDescription> mInputsAttributs;
-	};
-
-	struct ViewportSize
-	{
-		float Width = 0;
-		float Height = 0;
-	};
-
-	class ViewportState
-	{
-	public:
-		ViewportState(std::initializer_list<ViewportSize> Sizes);
-
-		inline VkPipelineViewportStateCreateInfo GetViewportState() const { return mViewportState; }
-		inline std::vector<VkViewport> GetViewports() const { return mViewports; }
-		inline std::vector<VkRect2D> GetScissors() const { return mScissors; }
-
-	private:
-		VkPipelineViewportStateCreateInfo mViewportState = {};
-		std::vector<VkViewport> mViewports;
-		std::vector<VkRect2D> mScissors;
-
-	};
-
-	class PipelineLayout
-	{
-	public:
-		PipelineLayout(std::initializer_list<Shader*> Shaders);
-
-		~PipelineLayout();
-
-		inline VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
-		inline VkDescriptorSetLayout GetDescriptorSetLayout() const { return mDescriptorLayout; }
-
-	private:
-		VkDescriptorSetLayout mDescriptorLayout = nullptr;
-		VkPipelineLayout mPipelineLayout = nullptr;
-	};
-
-	class DynamicState
-	{
-	public:
-		DynamicState();
-
-		inline VkPipelineDynamicStateCreateInfo GetDynamicState() const { return mDynamicState; }
-
-	private:
-		VkPipelineDynamicStateCreateInfo mDynamicState = {};
-		std::vector<VkDynamicState> mDynamicStates;
-
-	};
-
+		vkDestroyPipeline(Device, mPipeline, nullptr);
+		delete mPipelineLayout;
+		delete mViewportState;
+	}
 }

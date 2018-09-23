@@ -139,10 +139,11 @@ python ./Scripts/PreprocessVertexDefinitions.py</Command>
     <ClInclude Include="Source\Renderer\image.h" />
     <ClInclude Include="Source\Renderer\image_view.h" />
     <ClInclude Include="Source\Renderer\memory_manager.h" />
+    <ClInclude Include="Source\Renderer\pipeline.h" />
     <ClInclude Include="Source\Renderer\render_pass.h" />
     <ClInclude Include="Source\Renderer\sampler.h" />
     <ClInclude Include="Source\Renderer\shader.h" />
-    <ClInclude Include="Source\Renderer\pipeline.h" />
+    <ClInclude Include="Source\Renderer\pipeline_creation.h" />
     <ClInclude Include="Source\Renderer\shader_reflection.h" />
     <ClInclude Include="Source\Renderer\swap_chain.h" />
     <ClInclude Include="Source\Renderer\vertex_definitions.h" />
@@ -162,6 +163,7 @@ python ./Scripts/PreprocessVertexDefinitions.py</Command>
     <ClCompile Include="Source\Renderer\image_view.cpp" />
     <ClCompile Include="Source\Renderer\memory_manager.cpp" />
     <ClCompile Include="Source\Renderer\pipeline.cpp" />
+    <ClCompile Include="Source\Renderer\pipeline_creation.cpp" />
     <ClCompile Include="Source\Renderer\render_pass.cpp" />
     <ClCompile Include="Source\Renderer\sampler.cpp" />
     <ClCompile Include="Source\Renderer\shader.cpp" />

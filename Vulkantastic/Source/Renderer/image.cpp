@@ -48,7 +48,7 @@ Image::Image(std::initializer_list<uint32_t> QueueIndices, ImageUsage Flags, boo
 	MemoryManager::Get().Allocate(mAllocation, mMemoryRequirements, mGPUSide);
 	Assert(vkBindImageMemory(Device, mImage, mAllocation.GetMemory(), mAllocation.GetOffset()) == VK_SUCCESS);
 
-	UploadData(Data, mSettings.Width * mSettings.Height * GetNumComponentsByFormat(mSettings.Format));
+	UploadData(Data, mSettings.Width * mSettings.Height * GetSizeInBytesByFormat(mSettings.Format));
 
 	if (mSettings.Mipmaps)
 	{
@@ -94,7 +94,7 @@ void Image::UploadData(const void* Data, uint32_t Size)
 	const bool IsDataValid = Data != nullptr;
 	if (!IsDataValid) { return; }
 
-	const bool IsSizeValid = Size == (mSettings.Height * mSettings.Width * GetNumComponentsByFormat(mSettings.Format));
+	const bool IsSizeValid = Size == (mSettings.Height * mSettings.Width * GetSizeInBytesByFormat(mSettings.Format));
 	Assert(IsSizeValid);
 
 	uint32_t GraphicsQueueIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
@@ -242,8 +242,25 @@ uint8_t Image::GetNumComponentsByFormat(ImageFormat Format)
 	case ImageFormat::R8:
 		return 1;
 	case ImageFormat::R8G8:
+	case ImageFormat::D24S8:
 		return 2;
 	case ImageFormat::R8G8B8A8:
+	case ImageFormat::B8G8R8A8:
+		return 4;
+	}
+	return 0;
+}
+
+int32_t Image::GetSizeInBytesByFormat(ImageFormat Format)
+{
+	switch (Format)
+	{
+	case ImageFormat::R8:
+		return 1;
+	case ImageFormat::R8G8:
+		return 2;
+	case ImageFormat::R8G8B8A8:
+	case ImageFormat::B8G8R8A8:
 	case ImageFormat::D24S8:
 		return 4;
 	}
