@@ -2,6 +2,7 @@
 #include "vulkan/vulkan_core.h"
 #include "render_pass.h"
 #include <memory>
+#include "descriptor_manager.h"
 
 class PipelineShaders
 {
@@ -10,10 +11,13 @@ public:
 
 	inline Shader* GetVertexShader() const { return mVertex; }
 	inline Shader* GetFragmentShader() const { return mFragment; }
+	inline std::vector<Shader*> GetShaders() const { return mShaders; }
 
 private:
 	Shader* mVertex = nullptr;
 	Shader* mFragment = nullptr;
+	std::vector<Shader*> mShaders;
+
 };
 
 template<typename ...VertexDef>
@@ -30,13 +34,15 @@ public:
 	GraphicsPipeline& operator=(GraphicsPipeline&& Rhs) = delete;
 
 	inline VkPipeline GetPipeline() const { return mPipeline; }
-	PipelineCreation::PipelineLayout* GetPipelineLayout() { return mPipelineLayout; }
-	PipelineCreation::ViewportState* GetViewportState() { return mViewportState; }
+	inline PipelineCreation::PipelineLayout* GetPipelineLayout() { return mPipelineLayout.get(); }
+	inline PipelineCreation::ViewportState* GetViewportState() { return mViewportState.get(); }
+	inline DescriptorManager* GetDescriptorManager() { return mDescriptorManager.get(); }
 
 private:
 	VkPipeline mPipeline = nullptr;
-	PipelineCreation::PipelineLayout* mPipelineLayout = nullptr;
-	PipelineCreation::ViewportState* mViewportState = nullptr;
+	std::unique_ptr<PipelineCreation::PipelineLayout> mPipelineLayout;
+	std::unique_ptr<PipelineCreation::ViewportState> mViewportState;
+	std::unique_ptr<DescriptorManager> mDescriptorManager;
 	
 };
 
@@ -58,13 +64,16 @@ GraphicsPipeline<VertexDef...>::GraphicsPipeline(const RenderPass& GraphicsRende
 		Viewports.push_back({ Attachment.Width, Attachment.Height });
 	}
 
-	mViewportState = new PipelineCreation::ViewportState(Viewports);
+	mViewportState = std::make_unique<PipelineCreation::ViewportState>(Viewports);
 	GraphicsPipelineInfo.pViewportState = &mViewportState->GetViewportState();
 	
 	PipelineCreation::DynamicState Dynamic{};
 	GraphicsPipelineInfo.pDynamicState = &Dynamic.GetDynamicState();
 
-	mPipelineLayout = new PipelineCreation::PipelineLayout{ Shaders.GetVertexShader(), Shaders.GetFragmentShader() };
+	auto ShadersList = { Shaders.GetVertexShader(), Shaders.GetFragmentShader() };
+	mDescriptorManager = std::make_unique<DescriptorManager>(ShadersList);
+
+	mPipelineLayout = std::make_unique<PipelineCreation::PipelineLayout>(mDescriptorManager.get());
 	GraphicsPipelineInfo.layout = mPipelineLayout->GetPipelineLayout();
 
 	PipelineCreation::VertexInputState VertexInput(Shaders.GetVertexShader(), { (VertexDef::VertexFormatInfo)... });
@@ -118,7 +127,5 @@ GraphicsPipeline<VertexDef...>::~GraphicsPipeline()
 		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
 		vkDestroyPipeline(Device, mPipeline, nullptr);
-		delete mPipelineLayout;
-		delete mViewportState;
 	}
 }

@@ -5,6 +5,7 @@
 #include "device.h"
 #include <algorithm>
 #include "../Utilities/assert.h"
+#include "descriptor_manager.h"
 
 namespace PipelineCreation
 {
@@ -199,40 +200,16 @@ namespace PipelineCreation
 
 	}
 
-	PipelineLayout::PipelineLayout(std::initializer_list<Shader*> Shaders)
+	PipelineLayout::PipelineLayout(DescriptorManager* DescManager)
 	{
 		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
-		std::vector<VkDescriptorSetLayoutBinding> DescLayoutBindings;
-
-		for (auto& Shader : Shaders)
-		{
-			auto Uniforms = Shader->GetUniforms();
-
-			for (auto& Uniform : Uniforms)
-			{
-				VkDescriptorSetLayoutBinding Binding = {};
-				Binding.binding = Uniform.Binding;
-				Binding.descriptorCount = 1;
-				Binding.stageFlags = ShaderReflection::InternalShaderTypeToVulkan(Shader->GetType());
-				Binding.descriptorType = ShaderReflection::InternalUniformTypeToVulkan(Uniform.Format);
-
-				DescLayoutBindings.push_back(Binding);
-			}
-
-		}
-
-		VkDescriptorSetLayoutCreateInfo DescriptorLayoutInfo = {};
-		DescriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		DescriptorLayoutInfo.bindingCount = static_cast<uint32_t>(DescLayoutBindings.size());
-		DescriptorLayoutInfo.pBindings = DescLayoutBindings.data();
-
-		Assert(vkCreateDescriptorSetLayout(Device, &DescriptorLayoutInfo, nullptr, &mDescriptorLayout) == VK_SUCCESS);
 
 		VkPipelineLayoutCreateInfo PipelineLayoutInfo = {};
 		PipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		PipelineLayoutInfo.setLayoutCount = 1;
-		PipelineLayoutInfo.pSetLayouts = &mDescriptorLayout;
+		auto DescLayout = DescManager->GetLayout();
+		PipelineLayoutInfo.pSetLayouts = &DescLayout;
 
 		Assert(vkCreatePipelineLayout(Device, &PipelineLayoutInfo, nullptr, &mPipelineLayout) == VK_SUCCESS);
 
@@ -242,7 +219,6 @@ namespace PipelineCreation
 	{
 		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
-		vkDestroyDescriptorSetLayout(Device, mDescriptorLayout, nullptr);
 		vkDestroyPipelineLayout(Device, mPipelineLayout, nullptr);
 	}
 

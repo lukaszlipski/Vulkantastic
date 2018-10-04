@@ -121,35 +121,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		Sampler SamplerInst(SamplerInstSettings);
 
-		// Descriptor pool
-		std::array<VkDescriptorPoolSize, 2> PoolSizes;
-
-		PoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		PoolSizes[0].descriptorCount = 1;
-
-		PoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		PoolSizes[1].descriptorCount = 1;
-
-		VkDescriptorPoolCreateInfo CreateInfo = {};
-		CreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		CreateInfo.poolSizeCount = static_cast<uint32_t>(PoolSizes.size());
-		CreateInfo.pPoolSizes = PoolSizes.data();
-		CreateInfo.maxSets = 1;
-
-		VkDescriptorPool DescriptorPool;
-		vkCreateDescriptorPool(Device, &CreateInfo, nullptr, &DescriptorPool);
-
-		// Descriptor set
-		VkDescriptorSetAllocateInfo AllocDescriptorSetInfo = {};
-		AllocDescriptorSetInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		AllocDescriptorSetInfo.descriptorPool = DescriptorPool;
-		AllocDescriptorSetInfo.descriptorSetCount = 1;
-
-		auto DescLayout = Pipeline.GetPipelineLayout()->GetDescriptorSetLayout();
-		AllocDescriptorSetInfo.pSetLayouts = &DescLayout;
-
-		VkDescriptorSet DescriptorSet;
-		vkAllocateDescriptorSets(Device, &AllocDescriptorSetInfo, &DescriptorSet);
+		auto DescInst = Pipeline.GetDescriptorManager()->GetDescriptorInstance();
 
 		// Update descriptor set
 		VkDescriptorBufferInfo BufferInfo = {};
@@ -164,14 +136,14 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		std::array<VkWriteDescriptorSet, 2> Sets = {};
 
 		Sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		Sets[0].dstSet = DescriptorSet;
+		Sets[0].dstSet = DescInst->GetSet();
 		Sets[0].dstBinding = 0;
 		Sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		Sets[0].descriptorCount = 1;
 		Sets[0].pBufferInfo = &BufferInfo;
 
 		Sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		Sets[1].dstSet = DescriptorSet;
+		Sets[1].dstSet = DescInst->GetSet();
 		Sets[1].dstBinding = 1;
 		Sets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		Sets[1].descriptorCount = 1;
@@ -268,7 +240,8 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 			auto Viewports = Pipeline.GetViewportState()->GetViewports();
 			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, static_cast<uint32_t>(Viewports.size()), Viewports.data());
-			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline.GetPipelineLayout()->GetPipelineLayout(), 0, 1, &DescriptorSet, 0, nullptr);
+			auto Set = DescInst->GetSet();
+			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline.GetPipelineLayout()->GetPipelineLayout(), 0, 1, &Set, 0, nullptr);
 			vkCmdDrawIndexed(Cb->GetCommandBuffer(), Indicies.size(), 3, 0, 0, 0);
 			vkCmdEndRenderPass(Cb->GetCommandBuffer());
 

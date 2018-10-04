@@ -4,6 +4,7 @@
 #include "vertex_definitions_inc.h"
 
 class Shader;
+class DescriptorManager;
 
 enum class PipelineStage
 {
@@ -178,15 +179,13 @@ namespace PipelineCreation
 	class PipelineLayout
 	{
 	public:
-		PipelineLayout(std::initializer_list<Shader*> Shaders);
+		PipelineLayout(DescriptorManager* DescManager);
 
 		~PipelineLayout();
 
 		inline VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
-		inline VkDescriptorSetLayout GetDescriptorSetLayout() const { return mDescriptorLayout; }
 
 	private:
-		VkDescriptorSetLayout mDescriptorLayout = nullptr;
 		VkPipelineLayout mPipelineLayout = nullptr;
 	};
 
