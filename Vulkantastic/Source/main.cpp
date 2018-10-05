@@ -121,38 +121,11 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		Sampler SamplerInst(SamplerInstSettings);
 
+		// Prepeare descriptor
 		auto DescInst = Pipeline.GetDescriptorManager()->GetDescriptorInstance();
-
-		// Update descriptor set
-		VkDescriptorBufferInfo BufferInfo = {};
-		BufferInfo.buffer = UniformBuffer.GetBuffer();
-		BufferInfo.range = sizeof(Vector2D);
-
-		VkDescriptorImageInfo ImageInfo = {};
-		ImageInfo.imageLayout = static_cast<VkImageLayout>(ImageBuffer.GetCurrentLayout());
-		ImageInfo.imageView = View.GetView();
-		ImageInfo.sampler = SamplerInst.GetSampler();
-
-		std::array<VkWriteDescriptorSet, 2> Sets = {};
-
-		Sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		Sets[0].dstSet = DescInst->GetSet();
-		Sets[0].dstBinding = 0;
-		Sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		Sets[0].descriptorCount = 1;
-		Sets[0].pBufferInfo = &BufferInfo;
-
-		Sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		Sets[1].dstSet = DescInst->GetSet();
-		Sets[1].dstBinding = 1;
-		Sets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		Sets[1].descriptorCount = 1;
-		Sets[1].pImageInfo = &ImageInfo;
-
-		vkUpdateDescriptorSets(Device, static_cast<uint32_t>(Sets.size()), Sets.data(), 0, nullptr);
+		DescInst->SetBuffer("UBInstance", UniformBuffer)->SetImage("Image", View, SamplerInst)->Update();
 
 		// Create image views from swap chain images
-
 		std::vector<VkImageView> ImageViews;
 		auto Images = VulkanCore::Get().GetSwapChain()->GetImages();
 		ImageViews.reserve(Images.size());

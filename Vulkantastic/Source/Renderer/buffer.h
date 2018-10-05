@@ -41,7 +41,7 @@ public:
 	void CopyFromBuffer(const Buffer* Other, uint64_t Size, uint64_t SrcOffset = 0, uint64_t DstOffset = 0);
 
 	inline VkBuffer GetBuffer() const { return mBuffer; }
-	inline uint64_t GetSize() const { return mAllocation.GetSize(); }
+	inline uint64_t GetSize() const { return mSize; }
 	inline BufferUsage GetFlags() const { return mFlags; }
 
 private:

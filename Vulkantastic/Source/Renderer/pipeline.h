@@ -54,7 +54,7 @@ GraphicsPipeline<VertexDef...>::GraphicsPipeline(const RenderPass& GraphicsRende
 	VkGraphicsPipelineCreateInfo GraphicsPipelineInfo = {};
 	GraphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	GraphicsPipelineInfo.renderPass = GraphicsRenderPass.GetRenderPass();
-
+	
 	const auto& ColorAttachments = GraphicsRenderPass.GetColorAttachments();
 	std::vector<PipelineCreation::ViewportSize> Viewports;
 	Viewports.reserve(ColorAttachments.size());

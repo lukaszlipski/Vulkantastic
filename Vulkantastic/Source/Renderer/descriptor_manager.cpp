@@ -2,6 +2,7 @@
 #include "device.h"
 #include "../Utilities/assert.h"
 #include "core.h"
+#include <algorithm>
 
 constexpr int32_t MaxInstances = 128;
 
@@ -15,6 +16,10 @@ DescriptorManager::DescriptorManager(std::initializer_list<Shader*> Shaders)
 	for (auto& Shader : Shaders)
 	{
 		auto Uniforms = Shader->GetUniforms();
+		auto PushConstants = Shader->GetPushConstants();
+
+		mUniforms.insert(mUniforms.end(), Uniforms.begin(), Uniforms.end());
+		mPushConstants.insert(mPushConstants.end(), PushConstants.begin(), PushConstants.end());
 
 		for (auto& Uniform : Uniforms)
 		{
@@ -33,8 +38,8 @@ DescriptorManager::DescriptorManager(std::initializer_list<Shader*> Shaders)
 			DescPoolSizes.push_back(Size);
 
 		}
-
 	}
+
 
 	VkDescriptorSetLayoutCreateInfo DescriptorLayoutInfo = {};
 	DescriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -49,7 +54,8 @@ DescriptorManager::DescriptorManager(std::initializer_list<Shader*> Shaders)
 	CreateInfo.pPoolSizes = DescPoolSizes.data();
 	CreateInfo.maxSets = MaxInstances;
 
-	vkCreateDescriptorPool(Device, &CreateInfo, nullptr, &mPool);
+	Assert(vkCreateDescriptorPool(Device, &CreateInfo, nullptr, &mPool) == VK_SUCCESS);
+
 }
 
 DescriptorManager::DescriptorManager(DescriptorManager&& Rhs) noexcept
@@ -59,7 +65,7 @@ DescriptorManager::DescriptorManager(DescriptorManager&& Rhs) noexcept
 
 std::unique_ptr<DescriptorInst> DescriptorManager::GetDescriptorInstance()
 {
-	Assert(CurrentInstanceCount++ <= MaxInstances);
+	Assert(mCurrentInstanceCount++ <= MaxInstances);
 
 	return std::unique_ptr<DescriptorInst>(new DescriptorInst(this));
 }
@@ -82,7 +88,78 @@ DescriptorManager::~DescriptorManager()
 	vkDestroyDescriptorSetLayout(Device, mLayout, nullptr);
 }
 
+DescriptorInst* DescriptorInst::SetBuffer(const std::string& Name, const Buffer& BufferToSet)
+{
+
+	auto UniformIt = std::find_if(mUniforms.begin(), mUniforms.end(), [&Name](const auto& Elem) {
+		return Elem.Name == Name;
+	});
+
+	if (UniformIt != mUniforms.end())
+	{
+		VkDescriptorBufferInfo BufferInfo = {};
+		BufferInfo.buffer = BufferToSet.GetBuffer();
+		BufferInfo.range = BufferToSet.GetSize();
+
+		mBuffersInfo.push_back(BufferInfo);
+
+		VkWriteDescriptorSet Set = {};
+		Set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		Set.dstSet = mSet;
+		Set.dstBinding = UniformIt->Binding;
+		Set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		Set.descriptorCount = 1;
+		Set.pBufferInfo = &mBuffersInfo.back();
+
+		mWriteSets.push_back(Set);
+	}
+
+	return this;
+}
+
+DescriptorInst* DescriptorInst::SetImage(const std::string& Name, const ImageView& View, const Sampler& ImageSampler)
+{
+	auto UniformIt = std::find_if(mUniforms.begin(), mUniforms.end(), [&Name](const auto& Elem) {
+		return Elem.Name == Name;
+	});
+
+	if (UniformIt != mUniforms.end())
+	{
+		
+		VkDescriptorImageInfo ImageInfo = {};
+		ImageInfo.imageLayout = static_cast<VkImageLayout>(View.GetCurrentImageLayout());
+		ImageInfo.imageView = View.GetView();
+		ImageInfo.sampler = ImageSampler.GetSampler();
+
+		mImagesInfo.push_back(ImageInfo);
+
+		VkWriteDescriptorSet Set = {};
+		Set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		Set.dstSet = mSet;
+		Set.dstBinding = UniformIt->Binding;
+		Set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		Set.descriptorCount = 1;
+		Set.pImageInfo = &mImagesInfo.back();
+
+		mWriteSets.push_back(Set);
+	}
+
+	return this;
+}
+
+void DescriptorInst::Update()
+{
+	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
+
+	vkUpdateDescriptorSets(Device, static_cast<uint32_t>(mWriteSets.size()), mWriteSets.data(), 0, nullptr);
+
+	mBuffersInfo.clear();
+	mImagesInfo.clear();
+	mWriteSets.clear();
+}
+
 DescriptorInst::DescriptorInst(DescriptorManager* DescManager)
+	: mUniforms(DescManager->GetUniforms()), mPushConstants(DescManager->GetPushConstants())
 {
 	Assert(DescManager);
 	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
@@ -95,5 +172,7 @@ DescriptorInst::DescriptorInst(DescriptorManager* DescManager)
 	auto DescLayout = DescManager->GetLayout();
 	AllocDescriptorSetInfo.pSetLayouts = &DescLayout;
 
-	vkAllocateDescriptorSets(Device, &AllocDescriptorSetInfo, &mSet);
+	Assert(vkAllocateDescriptorSets(Device, &AllocDescriptorSetInfo, &mSet) == VK_SUCCESS);
+
+
 }

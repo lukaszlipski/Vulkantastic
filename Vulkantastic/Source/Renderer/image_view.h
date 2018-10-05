@@ -26,6 +26,7 @@ public:
 	ImageView& operator=(ImageView&& Rhs) noexcept;
 
 	inline VkImageView GetView() const { return mView; }
+	inline ImageLayout GetCurrentImageLayout() const { return mImage->GetCurrentLayout(); }
 
 private:
 	VkImageView mView = nullptr;

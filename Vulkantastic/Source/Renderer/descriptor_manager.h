@@ -1,6 +1,9 @@
 #pragma once
 #include "vulkan/vulkan_core.h"
 #include "shader.h"
+#include "buffer.h"
+#include "image_view.h"
+#include "sampler.h"
 
 class DescriptorManager
 {
@@ -18,11 +21,15 @@ public:
 
 	inline VkDescriptorSetLayout GetLayout() const { return mLayout; }
 	inline VkDescriptorPool GetPool() const { return mPool; }
+	inline std::vector<Uniform> GetUniforms() const { return mUniforms; }
+	inline std::vector<Uniform> GetPushConstants() const { return mPushConstants; }
 
 private:
 	VkDescriptorSetLayout mLayout = nullptr;
 	VkDescriptorPool mPool = nullptr;
-	int32_t CurrentInstanceCount = 0;
+	int32_t mCurrentInstanceCount = 0;
+	std::vector<Uniform> mUniforms;
+	std::vector<Uniform> mPushConstants;
 
 };
 
@@ -32,8 +39,19 @@ class DescriptorInst
 public:
 	inline VkDescriptorSet GetSet() const { return mSet; }
 
+	DescriptorInst* SetBuffer(const std::string& Name, const Buffer& BufferToSet);
+	DescriptorInst* SetImage(const std::string& Name, const ImageView& View, const Sampler& ImageSampler);
+	void Update();
+
 private:
 	DescriptorInst(DescriptorManager* DescManager);
 
 	VkDescriptorSet mSet = nullptr;
+
+	std::vector<VkWriteDescriptorSet> mWriteSets;
+	std::vector<VkDescriptorBufferInfo> mBuffersInfo;
+	std::vector<VkDescriptorImageInfo> mImagesInfo;
+
+	std::vector<Uniform> mUniforms;
+	std::vector<Uniform> mPushConstants;
 };
