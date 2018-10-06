@@ -19,7 +19,7 @@ DescriptorManager::DescriptorManager(std::initializer_list<Shader*> Shaders)
 		auto PushConstants = Shader->GetPushConstants();
 
 		mUniforms.insert(mUniforms.end(), Uniforms.begin(), Uniforms.end());
-		mPushConstants.insert(mPushConstants.end(), PushConstants.begin(), PushConstants.end());
+		mPushConstants[Shader->GetType()] = Shader->GetPushConstants();
 
 		for (auto& Uniform : Uniforms)
 		{

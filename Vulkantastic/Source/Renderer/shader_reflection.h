@@ -88,6 +88,7 @@ public:
 	static VkFormat InternalFormatToVulkan(VariableType Format);
 	static VkShaderStageFlags InternalShaderTypeToVulkan(ShaderType Type);
 	static VkDescriptorType InternalUniformTypeToVulkan(VariableType Type);
+	static int32_t GetSizeForFormat(VariableType Format);
 
 private:
 

@@ -92,6 +92,27 @@ VkDescriptorType ShaderReflection::InternalUniformTypeToVulkan(VariableType Type
 	return VK_DESCRIPTOR_TYPE_MAX_ENUM;
 }
 
+int32_t ShaderReflection::GetSizeForFormat(VariableType Format)
+{
+	switch (Format)
+	{
+	case VariableType::FLOAT:
+	case VariableType::INT:
+		return 4;
+	case VariableType::FLOAT2:
+	case VariableType::INT2:
+		return 8;
+	case VariableType::FLOAT3:
+	case VariableType::INT3:
+		return 12;
+	case VariableType::FLOAT4:
+	case VariableType::INT4:
+		return 16;
+	}
+	Assert(false); // Unsupported format
+	return 0;
+}
+
 bool ShaderReflection::ParseHeader()
 {
 	// Check for magic number

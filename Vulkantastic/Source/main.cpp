@@ -210,7 +210,10 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			auto InstBufferTmp = VertexBufferInst.GetBuffer();
 			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 1, 1, &InstBufferTmp, Offsets);
 			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
-
+			float VertPC[2] = { -0.2f,-0.3f };
+			float FragPC[3] = { 0.0f,1.0f,0.0f };
+			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 4, sizeof(float) * 3, FragPC);
+			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4, VertPC);
 			auto Viewports = Pipeline.GetViewportState()->GetViewports();
 			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, static_cast<uint32_t>(Viewports.size()), Viewports.data());
 			auto Set = DescInst->GetSet();

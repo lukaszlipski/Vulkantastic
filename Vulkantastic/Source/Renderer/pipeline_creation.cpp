@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "../Utilities/assert.h"
 #include "descriptor_manager.h"
+#include <array>
 
 namespace PipelineCreation
 {
@@ -204,12 +205,37 @@ namespace PipelineCreation
 	{
 		auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
-
 		VkPipelineLayoutCreateInfo PipelineLayoutInfo = {};
 		PipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		PipelineLayoutInfo.setLayoutCount = 1;
 		auto DescLayout = DescManager->GetLayout();
 		PipelineLayoutInfo.pSetLayouts = &DescLayout;
+
+		auto PushConstants = DescManager->GetPushConstants();
+		std::vector<VkPushConstantRange> PushConstantRanges;
+		PushConstantRanges.reserve(PushConstants.size());
+
+		for (auto& ShaderConstants : PushConstants)
+		{
+			auto& Constants = ShaderConstants.second;
+
+			if(Constants.empty()) { continue; }
+
+			const auto& FirstElem = Constants.front();
+			const auto& LastElem = Constants.back();
+			const auto& FirstPushConstant = FirstElem.Members.front();
+			const auto& LastPushConstant = LastElem.Members.back();
+
+			VkPushConstantRange Range = {};
+			Range.stageFlags = ShaderReflection::InternalShaderTypeToVulkan(ShaderConstants.first);
+			Range.offset = FirstPushConstant.Offset;
+			Range.size = LastPushConstant.Offset + ShaderReflection::GetSizeForFormat(LastPushConstant.Format) - FirstPushConstant.Offset;
+
+			PushConstantRanges.push_back(Range);
+		}
+	
+		PipelineLayoutInfo.pushConstantRangeCount = PushConstantRanges.size();
+		PipelineLayoutInfo.pPushConstantRanges = PushConstantRanges.data();
 
 		Assert(vkCreatePipelineLayout(Device, &PipelineLayoutInfo, nullptr, &mPipelineLayout) == VK_SUCCESS);
 

@@ -4,6 +4,7 @@
 #include "buffer.h"
 #include "image_view.h"
 #include "sampler.h"
+#include <map>
 
 class DescriptorManager
 {
@@ -22,14 +23,15 @@ public:
 	inline VkDescriptorSetLayout GetLayout() const { return mLayout; }
 	inline VkDescriptorPool GetPool() const { return mPool; }
 	inline std::vector<Uniform> GetUniforms() const { return mUniforms; }
-	inline std::vector<Uniform> GetPushConstants() const { return mPushConstants; }
+	inline std::vector<Uniform> GetPushConstantsForShader(ShaderType Type) { return mPushConstants[Type]; }
+	inline std::map<ShaderType, std::vector<Uniform>> GetPushConstants() const { return mPushConstants;	}
 
 private:
 	VkDescriptorSetLayout mLayout = nullptr;
 	VkDescriptorPool mPool = nullptr;
 	int32_t mCurrentInstanceCount = 0;
 	std::vector<Uniform> mUniforms;
-	std::vector<Uniform> mPushConstants;
+	std::map<ShaderType, std::vector<Uniform>> mPushConstants;
 
 };
 
@@ -53,5 +55,5 @@ private:
 	std::vector<VkDescriptorImageInfo> mImagesInfo;
 
 	std::vector<Uniform> mUniforms;
-	std::vector<Uniform> mPushConstants;
+	std::map<ShaderType, std::vector<Uniform>> mPushConstants;
 };

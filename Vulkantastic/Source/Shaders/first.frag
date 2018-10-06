@@ -7,7 +7,12 @@ layout(location=1) in vec2 fTexCoord;
 
 layout(binding=1) uniform sampler2D Image;
 
+layout(push_constant) uniform PushConstant2
+{
+	layout(offset = 16) vec3 CustomColor;
+};
+
 void main()
 {
-    Color = vec4(fColor * texture(Image,fTexCoord).rgb ,1.0f);
+    Color = vec4(fColor * texture(Image,fTexCoord).rgb * CustomColor, 1.0f);
 }
