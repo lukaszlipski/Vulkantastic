@@ -15,6 +15,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 {
 	Engine::Startup();
 
+	Shader* ComputeShader = ShaderManager::Get().Find("first.comp");
 	Shader* VertexShader = ShaderManager::Get().Find("first.vert");
 	Shader* FragmentShader = ShaderManager::Get().Find("first.frag");
 
@@ -121,10 +122,6 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		Sampler SamplerInst(SamplerInstSettings);
 
-		// Prepeare descriptor
-		auto DescInst = Pipeline.GetDescriptorManager()->GetDescriptorInstance();
-		DescInst->SetBuffer("UBInstance", UniformBuffer)->SetImage("Image", View, SamplerInst)->Update();
-
 		// Create image views from swap chain images
 		std::vector<VkImageView> ImageViews;
 		auto Images = VulkanCore::Get().GetSwapChain()->GetImages();
@@ -179,6 +176,50 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		}
 
+		// Compute shader
+		uint32_t ComputeQueue = VulkanCore::Get().GetDevice()->GetQueuesIndicies().ComputeIndex;
+		DescriptorManager ComputeDescManager({ ComputeShader });
+		
+		Buffer ComputeBuffer({ ComputeQueue }, BufferUsage::STORAGE | BufferUsage::UNIFORM, false, sizeof(float) * 5, nullptr);
+
+		auto ComputeDescInst = ComputeDescManager.GetDescriptorInstance();
+		ComputeDescInst->SetBuffer("", ComputeBuffer)->Update();
+
+		VkPipelineLayout ComputeLayout;
+		VkPipelineLayoutCreateInfo ComputeLayoutCreateInfo = {};
+		ComputeLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		ComputeLayoutCreateInfo.setLayoutCount = 1;
+		auto DescLayout = ComputeDescManager.GetLayout();
+		ComputeLayoutCreateInfo.pSetLayouts = &DescLayout;
+
+		vkCreatePipelineLayout(Device, &ComputeLayoutCreateInfo, nullptr, &ComputeLayout);
+
+		VkComputePipelineCreateInfo ComputePipelineCreateInfo = {};
+		ComputePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+		ComputePipelineCreateInfo.layout = ComputeLayout;
+		VkPipelineShaderStageCreateInfo ComputeShaderStage = {};
+		ComputeShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		ComputeShaderStage.module = ComputeShader->GetModule();
+		ComputeShaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+		ComputeShaderStage.pName = "main";
+		ComputePipelineCreateInfo.stage = ComputeShaderStage;
+
+		VkPipeline ComputePipeline = nullptr;
+		vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1, &ComputePipelineCreateInfo, nullptr, &ComputePipeline);
+
+		// Compute
+		CommandBuffer ComputeCB(ComputeQueue);
+		ComputeCB.Begin(CBUsage::SIMULTANEOUS);
+		vkCmdBindPipeline(ComputeCB.GetCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE, ComputePipeline);
+		auto CSet = ComputeDescInst->GetSet();
+		vkCmdBindDescriptorSets(ComputeCB.GetCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE, ComputeLayout, 0, 1, &CSet, 0, nullptr);
+		vkCmdDispatch(ComputeCB.GetCommandBuffer(), 5, 1, 1);
+		ComputeCB.End();
+
+		// Prepare graphics descriptor
+		auto DescInst = Pipeline.GetDescriptorManager()->GetDescriptorInstance();
+		DescInst->SetBuffer("UBInstance", UniformBuffer)->SetImage("Image", View, SamplerInst)->SetBuffer("UBInstance2", ComputeBuffer)->Update();
+
 		// Allocate and init command buffers
 		std::vector<CommandBuffer*> CommandBuffers;
 
@@ -213,7 +254,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			float VertPC[2] = { -0.2f,-0.3f };
 			float FragPC[3] = { 0.0f,1.0f,0.0f };
 			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 4, sizeof(float) * 3, FragPC);
-			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 4, VertPC);
+			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 2, VertPC);
 			auto Viewports = Pipeline.GetViewportState()->GetViewports();
 			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, static_cast<uint32_t>(Viewports.size()), Viewports.data());
 			auto Set = DescInst->GetSet();
@@ -228,7 +269,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		// Create synchronization objects
 		VkSemaphoreCreateInfo SemaphoreInfo = {};
 		SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
+		
 		std::vector<VkSemaphore> ImageReadyToDraw(CommandBuffers.size());
 		std::vector<VkSemaphore> ImageReadyToPresent(CommandBuffers.size());
 		std::vector<VkFence> FrameFence(CommandBuffers.size());
@@ -244,6 +285,10 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			vkCreateFence(Device, &FenceInfo, nullptr, &FrameFence[i]);
 		}
 
+		// Synchronization for compute
+		VkSemaphore ComputeDone;
+		vkCreateSemaphore(Device, &SemaphoreInfo, nullptr, &ComputeDone);
+
 		int32_t CurrentFrame = 0;
 
 		// End - Raw vulkan
@@ -256,10 +301,13 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			vkWaitForFences(Device, 1, &FrameFence[CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 			vkResetFences(Device, 1, &FrameFence[CurrentFrame]);
 
+			ComputeCB.Submit(false, { ComputeDone });
+
+			// Graphics
 			uint32_t ImageIndex;
 			vkAcquireNextImageKHR(Device, VulkanCore::Get().GetSwapChain()->GetSwapChain(), std::numeric_limits<uint64_t>::max(), ImageReadyToDraw[CurrentFrame], VK_NULL_HANDLE, &ImageIndex);
 
-			CommandBuffers[CurrentFrame]->Submit(FrameFence[CurrentFrame], { ImageReadyToPresent[CurrentFrame] }, { ImageReadyToDraw[CurrentFrame] }, { PipelineStage::COLOR_ATTACHMENT });
+			CommandBuffers[CurrentFrame]->Submit(FrameFence[CurrentFrame], { ImageReadyToPresent[CurrentFrame] }, { ImageReadyToDraw[CurrentFrame], ComputeDone }, { PipelineStage::COLOR_ATTACHMENT, PipelineStage::FRAGMENT });
 
 			VkPresentInfoKHR PresentInfo = {};
 			PresentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

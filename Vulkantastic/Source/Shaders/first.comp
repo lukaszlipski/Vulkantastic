@@ -1,0 +1,20 @@
+#version 450
+
+buffer test
+{
+  float Test[ ];
+};
+
+// gl_NumWorkGroups (uvec3)
+// gl_WorkGroupSize (uvec3)
+// gl_WorkGroupID (uvec3)
+// gl_LocalInvocationID (uvec3)
+// gl_GlobalInvocationID (uvec3)
+// gl_LocalInvocationIndex (uint)
+
+layout( local_size_x = 1,  local_size_y = 1, local_size_z = 1 )   in;
+
+void main()
+{
+	Test[gl_WorkGroupID.x] = 5.0;
+}

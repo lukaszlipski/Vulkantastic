@@ -26,6 +26,7 @@ enum class VariableType
 	MAT3x3,
 	MAT4x4,
 	STRUCTURE,
+	BUFFER,
 	SAMPLER,
 	MAX
 };
@@ -110,6 +111,9 @@ private:
 	UniformMember ProcessUniformMember(const Variable& MemberVariable, uint32_t ParentId, uint32_t Index);
 
 	VariableType GetVariableType(uint32_t Id);
+
+	VariableType GetTypeOfStructure(uint32_t Id);
+
 	VariableType GetTypeOfVector(uint32_t Id);
 	VariableType GetTypeOfMatrix(uint32_t Id);
 

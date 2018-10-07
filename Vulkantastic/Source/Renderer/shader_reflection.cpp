@@ -81,6 +81,8 @@ VkDescriptorType ShaderReflection::InternalUniformTypeToVulkan(VariableType Type
 {
 	switch (Type)
 	{
+	case VariableType::BUFFER:
+		return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	case VariableType::STRUCTURE:
 		return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	case VariableType::SAMPLER:
@@ -166,6 +168,7 @@ bool ShaderReflection::ParseInstruction()
 		break;
 	}
 	case SpvOpTypeArray:
+	case SpvOpTypeRuntimeArray:
 	case SpvOpTypePointer:
 	case SpvOpTypeMatrix:
 	case SpvOpTypeVector:
@@ -384,7 +387,7 @@ Uniform ShaderReflection::GetUniform(const Variable& UniformVariable)
 		}
 	}
 
-	if (Result.Format == VariableType::STRUCTURE)
+	if (Result.Format == VariableType::STRUCTURE || Result.Format == VariableType::BUFFER)
 	{
 
 		const uint32_t TypePtrInstruction = mVariablesSection[UniformVariable.Id];
@@ -426,6 +429,13 @@ Variable ShaderReflection::GetVariable(uint32_t InstructionIndex)
 	uint32_t NextInstruction = mVariablesSection[NextId];
 	Current = InstructionInfo{ NextInstruction, mSource };
 
+	if (Current.Instruction == SpvOpTypeRuntimeArray)
+	{
+		const uint32_t ArrayInstructionIndex = mVariablesSection[NextId];
+		NextId = mSource[ArrayInstructionIndex + 2];
+		Result.Size = std::numeric_limits<uint32_t>::max();
+	}
+
 	if (Current.Instruction == SpvOpTypeArray)
 	{
 		const uint32_t ArrayInstructionIndex = mVariablesSection[NextId];
@@ -449,7 +459,7 @@ Variable ShaderReflection::GetVariable(uint32_t InstructionIndex)
 	Result.Type = GetVariableType(NextId);
 	
 	// Handle structure members
-	if (Result.Type == VariableType::STRUCTURE)
+	if (Result.Type == VariableType::STRUCTURE || Result.Type == VariableType::BUFFER)
 	{
 		const uint32_t Instruction = mVariablesSection[NextId];
 		InstructionInfo StructureInstruction(Instruction, mSource);
@@ -525,12 +535,28 @@ VariableType ShaderReflection::GetVariableType(uint32_t Id)
 	case SpvOpTypeMatrix:
 		return GetTypeOfMatrix(Id);
 	case SpvOpTypeStruct:
-		return VariableType::STRUCTURE;
+		return GetTypeOfStructure(Id);
 	case SpvOpTypeSampledImage:
 		return VariableType::SAMPLER;
 	}
 
 	return VariableType::MAX;
+}
+
+VariableType ShaderReflection::GetTypeOfStructure(uint32_t Id)
+{
+	// Check if block buffer
+	auto& Decorations = mDecorateSection[Id];
+	for (auto& Decorate : Decorations)
+	{
+		const uint32_t DecorateType = mSource[Decorate + 2];
+		if (DecorateType == SpvDecorationBufferBlock)
+		{
+			return VariableType::BUFFER;
+		}
+	}
+
+	return VariableType::STRUCTURE;
 }
 
 VariableType ShaderReflection::GetTypeOfVector(uint32_t Id)

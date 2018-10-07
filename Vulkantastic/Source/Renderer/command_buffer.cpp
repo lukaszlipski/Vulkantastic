@@ -53,7 +53,7 @@ void CommandBuffer::Submit(bool Wait, std::vector<VkSemaphore> Signal, std::vect
 		Assert(vkCreateFence(Device, &FenceInfo, nullptr, &WaitFence) == VK_SUCCESS)
 	}
 
-	Submit(WaitFence, WaitFor, Signal, WaitStage);
+	Submit(WaitFence, Signal, WaitFor, WaitStage);
 
 	if (Wait)
 	{

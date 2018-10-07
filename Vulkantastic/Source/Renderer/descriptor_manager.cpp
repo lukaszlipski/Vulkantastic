@@ -40,7 +40,6 @@ DescriptorManager::DescriptorManager(std::initializer_list<Shader*> Shaders)
 		}
 	}
 
-
 	VkDescriptorSetLayoutCreateInfo DescriptorLayoutInfo = {};
 	DescriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	DescriptorLayoutInfo.bindingCount = static_cast<uint32_t>(DescLayoutBindings.size());
@@ -107,7 +106,7 @@ DescriptorInst* DescriptorInst::SetBuffer(const std::string& Name, const Buffer&
 		Set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		Set.dstSet = mSet;
 		Set.dstBinding = UniformIt->Binding;
-		Set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		Set.descriptorType = UniformIt->Format == VariableType::STRUCTURE ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		Set.descriptorCount = 1;
 		Set.pBufferInfo = &mBuffersInfo.back();
 
@@ -174,5 +173,15 @@ DescriptorInst::DescriptorInst(DescriptorManager* DescManager)
 
 	Assert(vkAllocateDescriptorSets(Device, &AllocDescriptorSetInfo, &mSet) == VK_SUCCESS);
 
+	auto BuffersCount = std::count_if(mUniforms.begin(), mUniforms.end(), [](const auto& Elem) {
+		return Elem.Format == VariableType::STRUCTURE || Elem.Format == VariableType::BUFFER;
+	});
+
+	auto ImagesCount = std::count_if(mUniforms.begin(), mUniforms.end(), [](const auto& Elem) {
+		return Elem.Format == VariableType::SAMPLER;
+	});
+
+	mBuffersInfo.reserve(BuffersCount);
+	mImagesInfo.reserve(ImagesCount);
 
 }
