@@ -20,6 +20,29 @@ private:
 
 };
 
+class ComputePipeline
+{
+public:
+	ComputePipeline(Shader* ComputeShader);
+	~ComputePipeline();
+
+	ComputePipeline(const ComputePipeline& Rhs) = delete;
+	ComputePipeline& operator=(const ComputePipeline& Rhs) = delete;
+
+	ComputePipeline(ComputePipeline&& Rhs) = delete;
+	ComputePipeline& operator=(ComputePipeline&& Rhs) = delete;
+
+	inline VkPipeline GetPipeline() const { return mPipeline; }
+	inline VkPipelineLayout GetPipelineLayout() { return mPipelineLayout; }
+	inline DescriptorManager* GetDescriptorManager() { return mDescriptorManager.get(); }
+
+private:
+	VkPipeline mPipeline = nullptr;
+	VkPipelineLayout mPipelineLayout = nullptr;
+	std::unique_ptr<DescriptorManager> mDescriptorManager;
+
+};
+
 template<typename ...VertexDef>
 class GraphicsPipeline
 {

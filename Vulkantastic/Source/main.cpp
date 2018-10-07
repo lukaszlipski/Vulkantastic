@@ -177,42 +177,20 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		}
 
 		// Compute shader
+		ComputePipeline ComputePip(ComputeShader);
+
 		uint32_t ComputeQueue = VulkanCore::Get().GetDevice()->GetQueuesIndicies().ComputeIndex;
-		DescriptorManager ComputeDescManager({ ComputeShader });
-		
+
 		Buffer ComputeBuffer({ ComputeQueue }, BufferUsage::STORAGE | BufferUsage::UNIFORM, false, sizeof(float) * 5, nullptr);
 
-		auto ComputeDescInst = ComputeDescManager.GetDescriptorInstance();
+		auto ComputeDescInst = ComputePip.GetDescriptorManager()->GetDescriptorInstance();
 		ComputeDescInst->SetBuffer("", ComputeBuffer)->Update();
 
-		VkPipelineLayout ComputeLayout;
-		VkPipelineLayoutCreateInfo ComputeLayoutCreateInfo = {};
-		ComputeLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		ComputeLayoutCreateInfo.setLayoutCount = 1;
-		auto DescLayout = ComputeDescManager.GetLayout();
-		ComputeLayoutCreateInfo.pSetLayouts = &DescLayout;
-
-		vkCreatePipelineLayout(Device, &ComputeLayoutCreateInfo, nullptr, &ComputeLayout);
-
-		VkComputePipelineCreateInfo ComputePipelineCreateInfo = {};
-		ComputePipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-		ComputePipelineCreateInfo.layout = ComputeLayout;
-		VkPipelineShaderStageCreateInfo ComputeShaderStage = {};
-		ComputeShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		ComputeShaderStage.module = ComputeShader->GetModule();
-		ComputeShaderStage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-		ComputeShaderStage.pName = "main";
-		ComputePipelineCreateInfo.stage = ComputeShaderStage;
-
-		VkPipeline ComputePipeline = nullptr;
-		vkCreateComputePipelines(Device, VK_NULL_HANDLE, 1, &ComputePipelineCreateInfo, nullptr, &ComputePipeline);
-
-		// Compute
 		CommandBuffer ComputeCB(ComputeQueue);
 		ComputeCB.Begin(CBUsage::SIMULTANEOUS);
-		vkCmdBindPipeline(ComputeCB.GetCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE, ComputePipeline);
+		vkCmdBindPipeline(ComputeCB.GetCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE, ComputePip.GetPipeline());
 		auto CSet = ComputeDescInst->GetSet();
-		vkCmdBindDescriptorSets(ComputeCB.GetCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE, ComputeLayout, 0, 1, &CSet, 0, nullptr);
+		vkCmdBindDescriptorSets(ComputeCB.GetCommandBuffer(), VK_PIPELINE_BIND_POINT_COMPUTE, ComputePip.GetPipelineLayout(), 0, 1, &CSet, 0, nullptr);
 		vkCmdDispatch(ComputeCB.GetCommandBuffer(), 5, 1, 1);
 		ComputeCB.End();
 
