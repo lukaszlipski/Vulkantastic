@@ -88,10 +88,10 @@ GraphicsPipeline<VertexDef...>::GraphicsPipeline(const RenderPass& GraphicsRende
 	}
 
 	mViewportState = std::make_unique<PipelineCreation::ViewportState>(Viewports);
-	GraphicsPipelineInfo.pViewportState = &mViewportState->GetViewportState();
+	GraphicsPipelineInfo.pViewportState = mViewportState->GetViewportState();
 	
 	PipelineCreation::DynamicState Dynamic{};
-	GraphicsPipelineInfo.pDynamicState = &Dynamic.GetDynamicState();
+	GraphicsPipelineInfo.pDynamicState = Dynamic.GetDynamicState();
 
 	auto ShadersList = { Shaders.GetVertexShader(), Shaders.GetFragmentShader() };
 	mDescriptorManager = std::make_unique<DescriptorManager>(ShadersList);
@@ -100,7 +100,7 @@ GraphicsPipeline<VertexDef...>::GraphicsPipeline(const RenderPass& GraphicsRende
 	GraphicsPipelineInfo.layout = mPipelineLayout->GetPipelineLayout();
 
 	PipelineCreation::VertexInputState VertexInput(Shaders.GetVertexShader(), { (VertexDef::VertexFormatInfo)... });
-	GraphicsPipelineInfo.pVertexInputState = &VertexInput.GetVertexInputState();
+	GraphicsPipelineInfo.pVertexInputState = VertexInput.GetVertexInputState();
 
 	std::vector<PipelineCreation::BlendDef> ColorBlends;
 	ColorBlends.reserve(ColorAttachments.size());
@@ -119,19 +119,19 @@ GraphicsPipeline<VertexDef...>::GraphicsPipeline(const RenderPass& GraphicsRende
 	}
 
 	PipelineCreation::ColorBlendState ColorBlend(ColorBlends);
-	GraphicsPipelineInfo.pColorBlendState = &ColorBlend.GetColorBlendState();
+	GraphicsPipelineInfo.pColorBlendState = ColorBlend.GetColorBlendState();
 
 	PipelineCreation::DepthStencilState DepthStencil{};
-	GraphicsPipelineInfo.pDepthStencilState = &DepthStencil.GetDepthStencilState();
+	GraphicsPipelineInfo.pDepthStencilState = DepthStencil.GetDepthStencilState();
 
 	PipelineCreation::MultisampleState Multisample{};
-	GraphicsPipelineInfo.pMultisampleState = &Multisample.GetMultisampleState();
+	GraphicsPipelineInfo.pMultisampleState = Multisample.GetMultisampleState();
 
 	PipelineCreation::RasterizationState Rasterization{};
-	GraphicsPipelineInfo.pRasterizationState = &Rasterization.GetRasterizationState();
+	GraphicsPipelineInfo.pRasterizationState = Rasterization.GetRasterizationState();
 
 	PipelineCreation::InputAssemblyState InputAssembly{};
-	GraphicsPipelineInfo.pInputAssemblyState = &InputAssembly.GetInputAssemblyState();
+	GraphicsPipelineInfo.pInputAssemblyState = InputAssembly.GetInputAssemblyState();
 
 	PipelineCreation::ShaderPipeline ShaderPip(Shaders.GetVertexShader(), Shaders.GetFragmentShader());
 	auto ShaderPipelineInformation = ShaderPip.GetShaderPipelineState();

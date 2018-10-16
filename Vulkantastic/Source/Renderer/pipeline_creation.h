@@ -50,7 +50,7 @@ namespace PipelineCreation
 	public:
 		DepthStencilState(DepthCompareOP CompareOP = DepthCompareOP::LESS, bool EnableWrite = true, bool EnableTest = true, bool EnableStencil = false, float Min = 0.0f, float Max = 1.0f);
 
-		inline VkPipelineDepthStencilStateCreateInfo GetDepthStencilState() const { return mDepthStencil; }
+		inline VkPipelineDepthStencilStateCreateInfo* GetDepthStencilState() { return &mDepthStencil; }
 
 	private:
 		VkPipelineDepthStencilStateCreateInfo mDepthStencil = {};
@@ -86,7 +86,7 @@ namespace PipelineCreation
 	public:
 		ColorBlendState(const std::vector<BlendDef>& AttachmentDefinitions);
 
-		inline VkPipelineColorBlendStateCreateInfo GetColorBlendState() const { return mColorBlendState; }
+		inline VkPipelineColorBlendStateCreateInfo* GetColorBlendState() { return &mColorBlendState; }
 
 	private:
 		VkPipelineColorBlendStateCreateInfo mColorBlendState = {};
@@ -112,7 +112,7 @@ namespace PipelineCreation
 	public:
 		RasterizationState(CullMode Cull = CullMode::BACK, FrontFace FaceDir = FrontFace::CLOCKWISE);
 
-		inline VkPipelineRasterizationStateCreateInfo GetRasterizationState() const { return mRasterizationState; }
+		inline VkPipelineRasterizationStateCreateInfo* GetRasterizationState() { return &mRasterizationState; }
 	private:
 		VkPipelineRasterizationStateCreateInfo mRasterizationState = {};
 	};
@@ -123,7 +123,7 @@ namespace PipelineCreation
 	public:
 		MultisampleState(bool Enable = false, uint8_t SampleCount = 1);
 
-		inline VkPipelineMultisampleStateCreateInfo GetMultisampleState() const { return mMultisampleState; }
+		inline VkPipelineMultisampleStateCreateInfo* GetMultisampleState() { return &mMultisampleState; }
 	private:
 		VkPipelineMultisampleStateCreateInfo mMultisampleState = {};
 	};
@@ -134,7 +134,7 @@ namespace PipelineCreation
 	public:
 		InputAssemblyState();
 
-		inline VkPipelineInputAssemblyStateCreateInfo GetInputAssemblyState() const { return mInputAssemblyState; }
+		inline VkPipelineInputAssemblyStateCreateInfo* GetInputAssemblyState() { return &mInputAssemblyState; }
 
 	private:
 		VkPipelineInputAssemblyStateCreateInfo mInputAssemblyState = {};
@@ -147,7 +147,7 @@ namespace PipelineCreation
 
 		VertexInputState(Shader* VertexShader, std::initializer_list<VertexFormatDeclaration> VertexFormats);
 
-		inline VkPipelineVertexInputStateCreateInfo GetVertexInputState() const { return mVertexInputState; }
+		inline VkPipelineVertexInputStateCreateInfo* GetVertexInputState() { return &mVertexInputState; }
 	private:
 		VkPipelineVertexInputStateCreateInfo mVertexInputState = {};
 		std::vector<VkVertexInputBindingDescription> mInputBindings;
@@ -165,7 +165,7 @@ namespace PipelineCreation
 	public:
 		ViewportState(const std::vector<ViewportSize>& Sizes);
 
-		inline VkPipelineViewportStateCreateInfo GetViewportState() const { return mViewportState; }
+		inline VkPipelineViewportStateCreateInfo* GetViewportState() { return &mViewportState; }
 		inline std::vector<VkViewport> GetViewports() const { return mViewports; }
 		inline std::vector<VkRect2D> GetScissors() const { return mScissors; }
 
@@ -194,7 +194,7 @@ namespace PipelineCreation
 	public:
 		DynamicState();
 
-		inline VkPipelineDynamicStateCreateInfo GetDynamicState() const { return mDynamicState; }
+		inline VkPipelineDynamicStateCreateInfo* GetDynamicState() { return &mDynamicState; }
 
 	private:
 		VkPipelineDynamicStateCreateInfo mDynamicState = {};

@@ -15,7 +15,11 @@ namespace Engine
 	{
 		Assert(File::Get().Startup());
 		Assert(Window::Get().Startup(1024, 720, "Vulkantastic"));
+#ifdef _DEBUG
 		Assert(VulkanCore::Get().Startup(true));
+#else
+		Assert(VulkanCore::Get().Startup(false));
+#endif
 		Assert(MemoryManager::Get().Startup());
 		Assert(ShaderManager::Get().Startup());
 	}
