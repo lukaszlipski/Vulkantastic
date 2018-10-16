@@ -17,6 +17,7 @@ class ImageView
 {
 public:
 	ImageView(Image* DesiredImage, ImageViewSettings Settings);
+	ImageView(VkImage RawImage, ImageViewSettings Settings);
 	~ImageView();
 
 	ImageView(const ImageView& Rhs) = delete;
@@ -27,11 +28,14 @@ public:
 
 	inline VkImageView GetView() const { return mView; }
 	inline ImageLayout GetCurrentImageLayout() const { return mImage->GetCurrentLayout(); }
+	inline ImageFormat GetViewFormat() const { mSettings.Format; }
 
 private:
 	VkImageView mView = nullptr;
 	Image* mImage;
 	ImageViewSettings mSettings;
+
+	void CreateImageView(const VkImage& RawImage);
 
 };
 

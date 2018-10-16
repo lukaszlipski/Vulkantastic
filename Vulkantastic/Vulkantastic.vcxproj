@@ -137,6 +137,7 @@ python ./Scripts/PreprocessVertexDefinitions.py</Command>
     <ClInclude Include="Source\Renderer\core.h" />
     <ClInclude Include="Source\Renderer\descriptor_manager.h" />
     <ClInclude Include="Source\Renderer\device.h" />
+    <ClInclude Include="Source\Renderer\framebuffer.h" />
     <ClInclude Include="Source\Renderer\image.h" />
     <ClInclude Include="Source\Renderer\image_view.h" />
     <ClInclude Include="Source\Renderer\memory_manager.h" />
@@ -161,6 +162,7 @@ python ./Scripts/PreprocessVertexDefinitions.py</Command>
     <ClCompile Include="Source\Renderer\core.cpp" />
     <ClCompile Include="Source\Renderer\descriptor_manager.cpp" />
     <ClCompile Include="Source\Renderer\device.cpp" />
+    <ClCompile Include="Source\Renderer\framebuffer.cpp" />
     <ClCompile Include="Source\Renderer\image.cpp" />
     <ClCompile Include="Source\Renderer\image_view.cpp" />
     <ClCompile Include="Source\Renderer\memory_manager.cpp" />

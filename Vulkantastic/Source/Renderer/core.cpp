@@ -60,6 +60,7 @@ VkCommandPool VulkanCore::GetGraphicsCommandPoolForCurrentThread()
 		VkCommandPoolCreateInfo CommandPoolInfo = {};
 		CommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		CommandPoolInfo.queueFamilyIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
+		CommandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		Assert(vkCreateCommandPool(Device, &CommandPoolInfo, nullptr, &ThreadLocalCommandPool) == VK_SUCCESS);
 
@@ -77,6 +78,7 @@ VkCommandPool VulkanCore::GetComputeCommandPoolForCurrentThread()
 		VkCommandPoolCreateInfo CommandPoolInfo = {};
 		CommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		CommandPoolInfo.queueFamilyIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().ComputeIndex;
+		CommandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		Assert(vkCreateCommandPool(Device, &CommandPoolInfo, nullptr, &ThreadLocalCommandPool) == VK_SUCCESS);
 

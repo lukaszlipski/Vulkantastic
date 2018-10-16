@@ -3,16 +3,35 @@
 
 
 ImageView::ImageView(Image* DesiredImage, ImageViewSettings Settings)
-	: mImage(DesiredImage), mSettings(Settings)
+	: mImage(DesiredImage), mSettings(std::move(Settings))
 {
 	Assert(mImage != nullptr);
 
+	CreateImageView(mImage->GetImage());
+
+}
+
+ImageView::ImageView(VkImage RawImage, ImageViewSettings Settings)
+	: mSettings(std::move(Settings))
+{
+	Assert(RawImage != nullptr);
+
+	CreateImageView(RawImage);
+}
+
+ImageView::ImageView(ImageView&& Rhs) noexcept
+{
+	*this = std::move(Rhs);
+}
+
+void ImageView::CreateImageView(const VkImage& RawImage)
+{
 	const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
 	VkImageViewCreateInfo ViewInfo = {};
 	ViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	ViewInfo.format = static_cast<VkFormat>(mSettings.Format);
-	ViewInfo.image = DesiredImage->GetImage();
+	ViewInfo.image = RawImage;
 	ViewInfo.subresourceRange.baseMipLevel = mSettings.BaseArrayLevel;
 	ViewInfo.subresourceRange.levelCount = mSettings.MipMapLevelCount;
 	ViewInfo.subresourceRange.baseArrayLayer = mSettings.BaseArrayLevel;
@@ -25,12 +44,6 @@ ImageView::ImageView(Image* DesiredImage, ImageViewSettings Settings)
 	ViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 
 	vkCreateImageView(Device, &ViewInfo, nullptr, &mView);
-
-}
-
-ImageView::ImageView(ImageView&& Rhs) noexcept
-{
-	*this = std::move(Rhs);
 }
 
 ImageView& ImageView::operator=(ImageView&& Rhs) noexcept

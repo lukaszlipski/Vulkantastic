@@ -10,6 +10,7 @@
 #include "Renderer/image_view.h"
 #include "Renderer/sampler.h"
 #include "Renderer/pipeline.h"
+#include "Renderer/framebuffer.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -123,57 +124,32 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		Sampler SamplerInst(SamplerInstSettings);
 
 		// Create image views from swap chain images
-		std::vector<VkImageView> ImageViews;
+		std::vector<std::unique_ptr<ImageView>> ImageViews;
 		auto Images = VulkanCore::Get().GetSwapChain()->GetImages();
 		ImageViews.reserve(Images.size());
 
+		auto Format = VulkanCore::Get().GetSwapChain()->GetFormat().format;
+
+		ImageViewSettings PresentationImageViewSettings = {};
+		PresentationImageViewSettings.Format = static_cast<ImageFormat>(Format);
+
 		for (auto& Image : Images)
 		{
-
-			VkImageViewCreateInfo Info = {};
-			Info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			Info.format = VulkanCore::Get().GetSwapChain()->GetFormat().format;
-			Info.image = Image;
-			Info.subresourceRange.baseMipLevel = 0;
-			Info.subresourceRange.levelCount = 1;
-			Info.subresourceRange.baseArrayLayer = 0;
-			Info.subresourceRange.layerCount = 1;
-			Info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			Info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-			Info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-			Info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-			Info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-			Info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-
-			VkImageView View;
-			vkCreateImageView(Device, &Info, nullptr, &View);
-
-			ImageViews.push_back(View);
-
+			ImageViews.push_back(std::make_unique<ImageView>(Image, PresentationImageViewSettings));
 		}
-
+		
 		// Create framebuffers
-		std::vector<VkFramebuffer> Framebuffers;
-		Framebuffers.resize(ImageViews.size());
-		for (int32_t i = 0; i < ImageViews.size(); ++i)
+		std::vector<std::unique_ptr<Framebuffer>> Framebuffers;
+		Framebuffers.reserve(ImageViews.size());
+
+		for (auto & View : ImageViews)
 		{
+			float Width = Extend.width;
+			float Height = Extend.height;
 
-			VkImageView Attachments[] = {
-				ImageViews[i],
-				DepthView.GetView()
-			};
-
-			VkFramebufferCreateInfo Info = {};
-			Info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			Info.attachmentCount = 2;
-			Info.pAttachments = Attachments;
-			Info.layers = 1;
-			Info.renderPass = GraphicsRenderPass.GetRenderPass();
-			Info.height = Extend.height;
-			Info.width = Extend.width;
-
-			vkCreateFramebuffer(Device, &Info, nullptr, &Framebuffers[i]);
-
+			std::vector<ImageView*> Tmp = { View.get() , &DepthView };
+			
+			Framebuffers.push_back(std::make_unique<Framebuffer>(Tmp, GraphicsRenderPass, Width, Height));
 		}
 
 		// Compute shader
@@ -203,7 +179,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		const int32_t GraphicsIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
 
-		for (auto & Framebuffer : Framebuffers)
+		for (auto & FB : Framebuffers)
 		{
 			CommandBuffer* Cb = new CommandBuffer(GraphicsIndex);
 			CommandBuffers.push_back(Cb);
@@ -214,7 +190,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 			VkRenderPassBeginInfo RenderPassBeginInfo = {};
 			RenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			RenderPassBeginInfo.framebuffer = Framebuffer;
+			RenderPassBeginInfo.framebuffer = FB->GetFramebuffer();
 			RenderPassBeginInfo.renderPass = GraphicsRenderPass.GetRenderPass();
 			RenderPassBeginInfo.renderArea.offset = { 0,0 };
 			RenderPassBeginInfo.renderArea.extent = Extend;
