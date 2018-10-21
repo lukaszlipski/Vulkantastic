@@ -240,11 +240,14 @@ uint8_t Image::GetNumComponentsByFormat(ImageFormat Format)
 	switch (Format)
 	{
 	case ImageFormat::R8:
+	case ImageFormat::R8_SRGB:
 		return 1;
 	case ImageFormat::R8G8:
+	case ImageFormat::R8G8_SRGB:
 	case ImageFormat::D24S8:
 		return 2;
 	case ImageFormat::R8G8B8A8:
+	case ImageFormat::R8G8B8A8_SRGB:
 	case ImageFormat::B8G8R8A8:
 		return 4;
 	}
@@ -256,10 +259,13 @@ int32_t Image::GetSizeInBytesByFormat(ImageFormat Format)
 	switch (Format)
 	{
 	case ImageFormat::R8:
+	case ImageFormat::R8_SRGB:
 		return 1;
 	case ImageFormat::R8G8:
+	case ImageFormat::R8G8_SRGB:
 		return 2;
 	case ImageFormat::R8G8B8A8:
+	case ImageFormat::R8G8B8A8_SRGB:
 	case ImageFormat::B8G8R8A8:
 	case ImageFormat::D24S8:
 		return 4;

@@ -14,12 +14,12 @@ Framebuffer::Framebuffer(const std::vector<ImageView*>& Views, const RenderPass&
 
 	VkFramebufferCreateInfo Info = {};
 	Info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	Info.attachmentCount = ImageViews.size();
+	Info.attachmentCount = static_cast<uint32_t>(ImageViews.size());
 	Info.pAttachments = ImageViews.data();
 	Info.layers = 1;
 	Info.renderPass = RPass.GetRenderPass();
-	Info.height = Height;
-	Info.width = Width;
+	Info.height = static_cast<uint32_t>(Height);
+	Info.width = static_cast<uint32_t>(Width);
 	
 	Assert(vkCreateFramebuffer(Device, &Info, nullptr, &mFramebuffer) == VK_SUCCESS);
 

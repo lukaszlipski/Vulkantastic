@@ -85,7 +85,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		Settings.Depth = 1;
 		Settings.Height = Height;
 		Settings.Width = Width;
-		Settings.Format = ImageFormat::R8G8B8A8;
+		Settings.Format = ImageFormat::R8G8B8A8_SRGB;
 		Settings.Type = ImageType::TWODIM;
 		Settings.Mipmaps = true;
 
@@ -95,7 +95,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		// Create image view
 		ImageViewSettings ViewSettings = {};
 		ViewSettings.MipMapLevelCount = ImageBuffer.GetMipMapsCount();
-		ViewSettings.Format = ImageFormat::R8G8B8A8;
+		ViewSettings.Format = ImageFormat::R8G8B8A8_SRGB;
 
 		ImageView View(&ImageBuffer, ViewSettings);
 
