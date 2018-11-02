@@ -3,11 +3,26 @@
 #include "../Utilities/assert.h"
 #include "core.h"
 #include <algorithm>
+#include "uniform_buffer.h"
+#include "pipeline.h"
+#include "swap_chain.h"
+#include "push_constant_buffer.h"
 
 constexpr int32_t MaxInstances = 128;
 
-DescriptorManager::DescriptorManager(std::initializer_list<Shader*> Shaders)
+DescriptorManager::DescriptorManager(std::vector<Shader*> Shaders)
 {
+	Assert(Shaders.size());
+
+	if (Shaders[0]->GetType() == ShaderType::COMPUTE)
+	{
+		mPipelineType = PipelineType::COMPUTE;
+	}
+	else
+	{
+		mPipelineType = PipelineType::GRAPHICS;
+	}
+
 	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
 	std::vector<VkDescriptorSetLayoutBinding> DescLayoutBindings;
@@ -69,6 +84,11 @@ std::unique_ptr<DescriptorInst> DescriptorManager::GetDescriptorInstance()
 	return std::unique_ptr<DescriptorInst>(new DescriptorInst(this));
 }
 
+PipelineType DescriptorManager::GetPipelineType() const
+{
+	return mPipelineType;
+}
+
 DescriptorManager& DescriptorManager::operator=(DescriptorManager&& Rhs) noexcept
 {
 	mLayout = Rhs.mLayout;
@@ -85,6 +105,11 @@ DescriptorManager::~DescriptorManager()
 	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
 	vkDestroyDescriptorSetLayout(Device, mLayout, nullptr);
+}
+
+DescriptorInst::~DescriptorInst()
+{
+	
 }
 
 DescriptorInst* DescriptorInst::SetBuffer(const std::string& Name, const Buffer& BufferToSet)
@@ -110,7 +135,19 @@ DescriptorInst* DescriptorInst::SetBuffer(const std::string& Name, const Buffer&
 		Set.descriptorCount = 1;
 		Set.pBufferInfo = &mBuffersInfo.back();
 
-		mWriteSets.push_back(Set);
+		auto Entry = std::find_if(mWriteSets.begin(), mWriteSets.end(), [Binding = UniformIt->Binding](const auto& Elem) {
+			return Elem.dstBinding == Binding;
+		});
+
+		if (Entry != mWriteSets.end())
+		{
+			*Entry = Set;
+		}
+		else
+		{
+			mWriteSets.push_back(Set);
+		}
+
 	}
 
 	return this;
@@ -140,15 +177,61 @@ DescriptorInst* DescriptorInst::SetImage(const std::string& Name, const ImageVie
 		Set.descriptorCount = 1;
 		Set.pImageInfo = &mImagesInfo.back();
 
+		auto Entry = std::find_if(mWriteSets.begin(), mWriteSets.end(), [Binding = UniformIt->Binding](const auto& Elem) {
+			return Elem.dstBinding == Binding;
+		});
+
+		if (Entry != mWriteSets.end())
+		{
+			*Entry = Set;
+		}
+		else
+		{
+			mWriteSets.push_back(Set);
+		}
+
 		mWriteSets.push_back(Set);
 	}
 
 	return this;
 }
 
+class UniformBuffer* DescriptorInst::GetUniformBuffer(const std::string& Name)
+{
+	auto CurrentImageIndex = VulkanCore::Get().GetImageIndex();
+
+	for (auto& Buffer : mUniformBuffers)
+	{
+		if (Buffer->GetName() == Name)
+		{
+			return Buffer.get();
+		}
+	}
+	return nullptr;
+}
+
+class PushConstantBuffer* DescriptorInst::GetPushConstantBuffer(ShaderType Type)
+{
+	auto PushConstant = mPushConstantBuffers.find(Type);
+	if (PushConstant != mPushConstantBuffers.end())
+	{
+		return PushConstant->second.get();
+	}
+	return nullptr;
+}
+
 void DescriptorInst::Update()
 {
 	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
+
+	for (auto& Buffer : mUniformBuffers)
+	{
+		Buffer->Update();
+
+		auto BufferPtr = Buffer->GetBuffer();
+		SetBuffer(Buffer->GetName(), *BufferPtr);
+
+	}
 
 	vkUpdateDescriptorSets(Device, static_cast<uint32_t>(mWriteSets.size()), mWriteSets.data(), 0, nullptr);
 
@@ -184,4 +267,51 @@ DescriptorInst::DescriptorInst(DescriptorManager* DescManager)
 	mBuffersInfo.reserve(BuffersCount);
 	mImagesInfo.reserve(ImagesCount);
 
+	uint32_t QueueIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
+
+	if (DescManager->GetPipelineType() == PipelineType::GRAPHICS)
+	{
+		QueueIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
+	}
+	else
+	{
+		QueueIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().ComputeIndex;
+	}
+
+	std::for_each(mUniforms.begin(), mUniforms.end(), [&UBuffers = mUniformBuffers, QueueIndex](const auto& Elem) {
+		if (Elem.Format == VariableType::STRUCTURE)
+		{
+			std::vector<uint32_t> Indicies = { QueueIndex };
+
+			UBuffers.push_back(std::make_unique<UniformBuffer>(Elem, Indicies));	
+		}
+	});
+
+	std::for_each(mPushConstants.begin(), mPushConstants.end(), [&PCBuffers = mPushConstantBuffers](const auto& Elem) {
+		if (Elem.second.size() <= 0) { return; }
+		PCBuffers[Elem.first] = std::make_unique<PushConstantBuffer>(Elem.second.front());
+	});
+
+}
+
+DescriptorInst::DescriptorInst(DescriptorInst&& Rhs) noexcept
+{
+	*this = std::move(Rhs);
+}
+
+DescriptorInst& DescriptorInst::operator=(DescriptorInst&& Rhs) noexcept
+{
+	mSet = Rhs.mSet;
+	Rhs.mSet = nullptr;
+
+	mWriteSets = std::move(Rhs.mWriteSets);
+	mBuffersInfo = std::move(Rhs.mBuffersInfo);
+	mImagesInfo = std::move(Rhs.mImagesInfo);
+
+	mUniforms = std::move(Rhs.mUniforms);
+	mPushConstants = std::move(Rhs.mPushConstants);
+
+	mUniformBuffers = std::move(Rhs.mUniformBuffers);
+
+	return *this;
 }

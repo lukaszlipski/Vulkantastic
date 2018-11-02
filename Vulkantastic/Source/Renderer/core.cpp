@@ -100,6 +100,14 @@ VkCommandPool VulkanCore::GetCommandPoolByIndex(int32_t QueueIndex) const
 	return nullptr;
 }
 
+int32_t VulkanCore::ProgessImageIndex()
+{
+	auto ImageCount = mSwapChain->GetImagesCount();
+	mCurrentImageIndex = (mCurrentImageIndex + 1) % ImageCount;
+
+	return mCurrentImageIndex;
+}
+
 bool VulkanCore::CreateInstance()
 {
 	VkApplicationInfo AppInfo = {};

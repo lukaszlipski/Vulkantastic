@@ -28,7 +28,7 @@ inline BufferUsage operator&(BufferUsage Left, BufferUsage Right)
 class Buffer
 {
 public:
-	Buffer(std::initializer_list<uint32_t> QueueIndices, BufferUsage Flags, bool GPUSide, uint32_t Size, const void* Data = nullptr);
+	Buffer(const std::vector<uint32_t>& QueueIndices, BufferUsage Flags, bool GPUSide, uint32_t Size, const void* Data = nullptr);
 	~Buffer();
 
 	Buffer(const Buffer& Rhs) = delete;

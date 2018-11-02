@@ -6,10 +6,12 @@
 #include "sampler.h"
 #include <map>
 
+enum class PipelineType : uint8_t;
+
 class DescriptorManager
 {
 public:
-	DescriptorManager(std::initializer_list<Shader*> Shaders);
+	DescriptorManager(std::vector<Shader*> Shaders);
 	~DescriptorManager();
 
 	DescriptorManager(const DescriptorManager& Rhs) = delete;
@@ -26,23 +28,42 @@ public:
 	inline std::vector<Uniform> GetPushConstantsForShader(ShaderType Type) { return mPushConstants[Type]; }
 	inline std::map<ShaderType, std::vector<Uniform>> GetPushConstants() const { return mPushConstants;	}
 
+	PipelineType GetPipelineType() const;
+
 private:
 	VkDescriptorSetLayout mLayout = nullptr;
 	VkDescriptorPool mPool = nullptr;
 	int32_t mCurrentInstanceCount = 0;
 	std::vector<Uniform> mUniforms;
 	std::map<ShaderType, std::vector<Uniform>> mPushConstants;
+	PipelineType mPipelineType;
 
 };
 
 class DescriptorInst
 {
 	friend DescriptorManager;
+
+	using UniformBuffersList = std::vector<std::unique_ptr<class UniformBuffer>>;
+	using PushConstantBuffersList = std::map<ShaderType, std::unique_ptr<class PushConstantBuffer>>;
+
 public:
+	~DescriptorInst();
+
+	DescriptorInst(const DescriptorInst& Rhs) = delete;
+	DescriptorInst& operator=(const DescriptorInst& Rhs) = delete;
+
+	DescriptorInst(DescriptorInst&& Rhs) noexcept;
+	DescriptorInst& operator=(DescriptorInst&& Rhs) noexcept;
+
 	inline VkDescriptorSet GetSet() const { return mSet; }
 
 	DescriptorInst* SetBuffer(const std::string& Name, const Buffer& BufferToSet);
 	DescriptorInst* SetImage(const std::string& Name, const ImageView& View, const Sampler& ImageSampler);
+
+	class UniformBuffer* GetUniformBuffer(const std::string& Name);
+	class PushConstantBuffer* GetPushConstantBuffer(ShaderType Type);
+
 	void Update();
 
 private:
@@ -56,4 +77,7 @@ private:
 
 	std::vector<Uniform> mUniforms;
 	std::map<ShaderType, std::vector<Uniform>> mPushConstants;
+
+	UniformBuffersList mUniformBuffers;
+	PushConstantBuffersList mPushConstantBuffers;
 };

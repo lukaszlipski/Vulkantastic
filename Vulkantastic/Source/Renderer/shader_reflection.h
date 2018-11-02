@@ -90,6 +90,7 @@ public:
 	static VkShaderStageFlags InternalShaderTypeToVulkan(ShaderType Type);
 	static VkDescriptorType InternalUniformTypeToVulkan(VariableType Type);
 	static int32_t GetSizeForFormat(VariableType Format);
+	static int32_t GetSizeForStructure(Uniform Structure);
 
 private:
 

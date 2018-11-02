@@ -22,12 +22,14 @@ public:
 	VkCommandPool GetGraphicsCommandPoolForCurrentThread();
 	VkCommandPool GetComputeCommandPoolForCurrentThread();
 	VkCommandPool GetCommandPoolByIndex(int32_t QueueIndex) const;
+	int32_t ProgessImageIndex();
 
 	inline VkSurfaceKHR GetSurface() const { return mSurface; }
 	inline VkInstance GetInstance() const { return mInstance; }
 	inline bool GetDebugMode() const { return mDebugMode; }
 	inline Device* GetDevice() const { return mDevice; }
 	inline SwapChain* GetSwapChain() const { return mSwapChain; }
+	inline int32_t GetImageIndex() const { return mCurrentImageIndex; }
 
 private:
 	bool mDebugMode = false;
@@ -36,6 +38,7 @@ private:
 	VkDebugReportCallbackEXT mCallback = nullptr;
 	Device* mDevice;
 	SwapChain* mSwapChain;
+	int32_t mCurrentImageIndex = 0;
 
 	VulkanCore() = default;
 	bool CreateInstance();

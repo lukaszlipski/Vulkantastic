@@ -115,6 +115,17 @@ int32_t ShaderReflection::GetSizeForFormat(VariableType Format)
 	return 0;
 }
 
+int32_t ShaderReflection::GetSizeForStructure(Uniform Structure)
+{
+	int32_t Result = 0;
+	for (auto& Member : Structure.Members)
+	{
+		Result += GetSizeForFormat(Member.Format);
+	}
+
+	return Result;
+}
+
 bool ShaderReflection::ParseHeader()
 {
 	// Check for magic number

@@ -4,7 +4,7 @@
 #include "../Utilities/assert.h"
 #include "command_buffer.h"
 
-Buffer::Buffer(std::initializer_list<uint32_t> QueueIndices, BufferUsage Flags, bool GPUSide, uint32_t Size, const void* Data /*= nullptr*/) 
+Buffer::Buffer(const std::vector<uint32_t>& QueueIndices, BufferUsage Flags, bool GPUSide, uint32_t Size, const void* Data /*= nullptr*/) 
 	: mQueueIndices(QueueIndices), mFlags(Flags), mGPUSide(GPUSide), mSize(Size)
 {
 	VkBufferCreateInfo BufferInfo = {};

@@ -117,6 +117,8 @@ bool Device::CreateDevice(const VkPhysicalDevice& Device)
 	// Device features
 	VkPhysicalDeviceFeatures DeviceFeatures = {};
 	DeviceFeatures.samplerAnisotropy = VK_TRUE;
+	DeviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
+	DeviceFeatures.vertexPipelineStoresAndAtomics = VK_TRUE;
 
 	DeviceCreateInfo.pEnabledFeatures = &DeviceFeatures;
 

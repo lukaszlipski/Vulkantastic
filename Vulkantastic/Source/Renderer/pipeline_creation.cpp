@@ -234,7 +234,7 @@ namespace PipelineCreation
 			PushConstantRanges.push_back(Range);
 		}
 	
-		PipelineLayoutInfo.pushConstantRangeCount = PushConstantRanges.size();
+		PipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(PushConstantRanges.size());
 		PipelineLayoutInfo.pPushConstantRanges = PushConstantRanges.data();
 
 		Assert(vkCreatePipelineLayout(Device, &PipelineLayoutInfo, nullptr, &mPipelineLayout) == VK_SUCCESS);

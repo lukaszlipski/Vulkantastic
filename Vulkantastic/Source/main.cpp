@@ -11,6 +11,8 @@
 #include "Renderer/sampler.h"
 #include "Renderer/pipeline.h"
 #include "Renderer/framebuffer.h"
+#include "Renderer/uniform_buffer.h"
+#include "Renderer/push_constant_buffer.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -70,11 +72,6 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		};
 		// Create index buffer
 		Buffer IndexBuffer({ GraphicsQueueIndex }, BufferUsage::INDEX | BufferUsage::TRANSFER_DST, true, sizeof(int16_t) * Indicies.size(), Indicies.data());
-
-		// Create uniform buffer
-		Vector2D UBData = { 0.1f, 0.1f };
-
-		Buffer UniformBuffer({ GraphicsQueueIndex }, BufferUsage::UNIFORM | BufferUsage::TRANSFER_DST, false, sizeof(Vector2D), &UBData);
 
 		// Create image buffer
 		int32_t Width, Height, Comp;
@@ -157,7 +154,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		uint32_t ComputeQueue = VulkanCore::Get().GetDevice()->GetQueuesIndicies().ComputeIndex;
 
-		Buffer ComputeBuffer({ ComputeQueue }, BufferUsage::STORAGE | BufferUsage::UNIFORM, false, sizeof(float) * 5, nullptr);
+		Buffer ComputeBuffer({ ComputeQueue, GraphicsQueueIndex }, BufferUsage::STORAGE, false, sizeof(float) * 5, nullptr);
 
 		auto ComputeDescInst = ComputePip.GetDescriptorManager()->GetDescriptorInstance();
 		ComputeDescInst->SetBuffer("", ComputeBuffer)->Update();
@@ -170,9 +167,26 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		vkCmdDispatch(ComputeCB.GetCommandBuffer(), 5, 1, 1);
 		ComputeCB.End();
 
-		// Prepare graphics descriptor
-		auto DescInst = Pipeline.GetDescriptorManager()->GetDescriptorInstance();
-		DescInst->SetBuffer("UBInstance", UniformBuffer)->SetImage("Image", View, SamplerInst)->SetBuffer("UBInstance2", ComputeBuffer)->Update();
+		// Update descriptor instance
+		auto DescInst = Pipeline.GetDescriptorManager()->GetDescriptorInstance();	
+
+		DescInst->SetImage("Image", View, SamplerInst)->SetBuffer("UBInstance2", ComputeBuffer);
+		
+		auto UBptr = DescInst->GetUniformBuffer("UBInstance");
+
+		Vector2D UBData = { 0.1f, 0.1f };
+		UBptr->Set("Offset", UBData);
+
+		Vector2D VertPCData = { -0.2f,-0.3f };
+		Vector3D FragPCData = { 0.0f,1.0f,0.0f };
+
+		auto PCVertPtr = DescInst->GetPushConstantBuffer(ShaderType::VERTEX);
+		PCVertPtr->Set("CustomOffset", VertPCData);
+
+		auto PCFragPtr = DescInst->GetPushConstantBuffer(ShaderType::FRAGMENT);
+		PCFragPtr->Set("CustomColor", FragPCData);
+
+		DescInst->Update();
 
 		// Allocate and init command buffers
 		std::vector<CommandBuffer*> CommandBuffers;
@@ -205,10 +219,13 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			auto InstBufferTmp = VertexBufferInst.GetBuffer();
 			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 1, 1, &InstBufferTmp, Offsets);
 			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
-			float VertPC[2] = { -0.2f,-0.3f };
-			float FragPC[3] = { 0.0f,1.0f,0.0f };
-			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 4, sizeof(float) * 3, FragPC);
-			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 2, VertPC);
+
+			auto PCVertPtr = DescInst->GetPushConstantBuffer(ShaderType::VERTEX);
+			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, PCVertPtr->GetOffset(), PCVertPtr->GetSize(), PCVertPtr->GetBuffer());
+
+			auto PCFragPtr = DescInst->GetPushConstantBuffer(ShaderType::FRAGMENT);
+			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, PCFragPtr->GetOffset(), PCFragPtr->GetSize(), PCFragPtr->GetBuffer());
+
 			auto Viewports = Pipeline.GetViewportState()->GetViewports();
 			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, static_cast<uint32_t>(Viewports.size()), Viewports.data());
 			auto Set = DescInst->GetSet();
@@ -243,8 +260,6 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		VkSemaphore ComputeDone;
 		vkCreateSemaphore(Device, &SemaphoreInfo, nullptr, &ComputeDone);
 
-		int32_t CurrentFrame = 0;
-
 		// End - Raw vulkan
 
 
@@ -252,16 +267,18 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		{
 			Window::Get().Update();
 
-			vkWaitForFences(Device, 1, &FrameFence[CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
-			vkResetFences(Device, 1, &FrameFence[CurrentFrame]);
+			auto CurrentImageIndex = VulkanCore::Get().GetImageIndex();
+
+			vkWaitForFences(Device, 1, &FrameFence[CurrentImageIndex], VK_TRUE, std::numeric_limits<uint64_t>::max());
+			vkResetFences(Device, 1, &FrameFence[CurrentImageIndex]);
 
 			ComputeCB.Submit(false, { ComputeDone });
 
 			// Graphics
 			uint32_t ImageIndex;
-			vkAcquireNextImageKHR(Device, VulkanCore::Get().GetSwapChain()->GetSwapChain(), std::numeric_limits<uint64_t>::max(), ImageReadyToDraw[CurrentFrame], VK_NULL_HANDLE, &ImageIndex);
+			vkAcquireNextImageKHR(Device, VulkanCore::Get().GetSwapChain()->GetSwapChain(), std::numeric_limits<uint64_t>::max(), ImageReadyToDraw[CurrentImageIndex], VK_NULL_HANDLE, &ImageIndex);
 
-			CommandBuffers[CurrentFrame]->Submit(FrameFence[CurrentFrame], { ImageReadyToPresent[CurrentFrame] }, { ImageReadyToDraw[CurrentFrame], ComputeDone }, { PipelineStage::COLOR_ATTACHMENT, PipelineStage::FRAGMENT });
+			CommandBuffers[CurrentImageIndex]->Submit(FrameFence[CurrentImageIndex], { ImageReadyToPresent[CurrentImageIndex] }, { ImageReadyToDraw[CurrentImageIndex], ComputeDone }, { PipelineStage::COLOR_ATTACHMENT, PipelineStage::FRAGMENT });
 
 			VkPresentInfoKHR PresentInfo = {};
 			PresentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -269,12 +286,12 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			auto SwapChain = VulkanCore::Get().GetSwapChain()->GetSwapChain();
 			PresentInfo.pSwapchains = &SwapChain;
 			PresentInfo.waitSemaphoreCount = 1;
-			PresentInfo.pWaitSemaphores = &ImageReadyToPresent[CurrentFrame];
+			PresentInfo.pWaitSemaphores = &ImageReadyToPresent[CurrentImageIndex];
 			PresentInfo.pImageIndices = &ImageIndex;
 
 			vkQueuePresentKHR(VulkanCore::Get().GetDevice()->GetGraphicsQueue(), &PresentInfo);
 
-			CurrentFrame = (CurrentFrame + 1) % CommandBuffers.size();
+			VulkanCore::Get().ProgessImageIndex();
 		}
 
 		for (auto& Cb : CommandBuffers)

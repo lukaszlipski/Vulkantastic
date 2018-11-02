@@ -4,6 +4,12 @@
 #include <memory>
 #include "descriptor_manager.h"
 
+enum class PipelineType : uint8_t
+{
+	GRAPHICS = 0,
+	COMPUTE
+};
+
 class PipelineShaders
 {
 public:

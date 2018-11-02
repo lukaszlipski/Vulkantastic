@@ -7,7 +7,7 @@ layout(location=1) in vec2 fTexCoord;
 
 layout(binding=1) uniform sampler2D Image;
 
-layout(binding=2) uniform UniformBuffer2
+layout(binding=2) buffer UniformBuffer2
 {
     float Test[];
 } UBInstance2;
