@@ -105,6 +105,7 @@ DescriptorManager::~DescriptorManager()
 	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
 	vkDestroyDescriptorSetLayout(Device, mLayout, nullptr);
+	vkDestroyDescriptorPool(Device, mPool, nullptr);
 }
 
 DescriptorInst::~DescriptorInst()

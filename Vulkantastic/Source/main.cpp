@@ -13,6 +13,7 @@
 #include "Renderer/framebuffer.h"
 #include "Renderer/uniform_buffer.h"
 #include "Renderer/push_constant_buffer.h"
+#include "Renderer/synchronization.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -238,27 +239,11 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		}
 
 		// Create synchronization objects
-		VkSemaphoreCreateInfo SemaphoreInfo = {};
-		SemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		
-		std::vector<VkSemaphore> ImageReadyToDraw(CommandBuffers.size());
-		std::vector<VkSemaphore> ImageReadyToPresent(CommandBuffers.size());
-		std::vector<VkFence> FrameFence(CommandBuffers.size());
+		std::vector<Semaphore> ImageReadyToDraw(CommandBuffers.size());
+		std::vector<Semaphore> ImageReadyToPresent(CommandBuffers.size());
+		std::vector<Fence> FrameFence(CommandBuffers.size());
 
-		VkFenceCreateInfo FenceInfo = {};
-		FenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		FenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-		for (int32_t i = 0; i < CommandBuffers.size(); ++i)
-		{
-			vkCreateSemaphore(Device, &SemaphoreInfo, nullptr, &ImageReadyToDraw[i]);
-			vkCreateSemaphore(Device, &SemaphoreInfo, nullptr, &ImageReadyToPresent[i]);
-			vkCreateFence(Device, &FenceInfo, nullptr, &FrameFence[i]);
-		}
-
-		// Synchronization for compute
-		VkSemaphore ComputeDone;
-		vkCreateSemaphore(Device, &SemaphoreInfo, nullptr, &ComputeDone);
+		Semaphore ComputeDone;
 
 		// End - Raw vulkan
 
@@ -269,16 +254,16 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 			auto CurrentImageIndex = VulkanCore::Get().GetImageIndex();
 
-			vkWaitForFences(Device, 1, &FrameFence[CurrentImageIndex], VK_TRUE, std::numeric_limits<uint64_t>::max());
-			vkResetFences(Device, 1, &FrameFence[CurrentImageIndex]);
+			FrameFence[CurrentImageIndex].Wait();
+			FrameFence[CurrentImageIndex].Reset();
 
-			ComputeCB.Submit(false, { ComputeDone });
+			ComputeCB.Submit(false, { &ComputeDone });
 
 			// Graphics
 			uint32_t ImageIndex;
-			vkAcquireNextImageKHR(Device, VulkanCore::Get().GetSwapChain()->GetSwapChain(), std::numeric_limits<uint64_t>::max(), ImageReadyToDraw[CurrentImageIndex], VK_NULL_HANDLE, &ImageIndex);
+			vkAcquireNextImageKHR(Device, VulkanCore::Get().GetSwapChain()->GetSwapChain(), std::numeric_limits<uint64_t>::max(), ImageReadyToDraw[CurrentImageIndex].Get(), VK_NULL_HANDLE, &ImageIndex);
 
-			CommandBuffers[CurrentImageIndex]->Submit(FrameFence[CurrentImageIndex], { ImageReadyToPresent[CurrentImageIndex] }, { ImageReadyToDraw[CurrentImageIndex], ComputeDone }, { PipelineStage::COLOR_ATTACHMENT, PipelineStage::FRAGMENT });
+			CommandBuffers[CurrentImageIndex]->Submit(&FrameFence[CurrentImageIndex], { &ImageReadyToPresent[CurrentImageIndex] }, { &ImageReadyToDraw[CurrentImageIndex], &ComputeDone }, { PipelineStage::COLOR_ATTACHMENT, PipelineStage::FRAGMENT });
 
 			VkPresentInfoKHR PresentInfo = {};
 			PresentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -286,13 +271,15 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			auto SwapChain = VulkanCore::Get().GetSwapChain()->GetSwapChain();
 			PresentInfo.pSwapchains = &SwapChain;
 			PresentInfo.waitSemaphoreCount = 1;
-			PresentInfo.pWaitSemaphores = &ImageReadyToPresent[CurrentImageIndex];
+			PresentInfo.pWaitSemaphores = ImageReadyToPresent[CurrentImageIndex].GetPtr();
 			PresentInfo.pImageIndices = &ImageIndex;
 
 			vkQueuePresentKHR(VulkanCore::Get().GetDevice()->GetGraphicsQueue(), &PresentInfo);
 
 			VulkanCore::Get().ProgessImageIndex();
 		}
+
+		vkDeviceWaitIdle(Device);
 
 		for (auto& Cb : CommandBuffers)
 		{

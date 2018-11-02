@@ -4,6 +4,8 @@
 #include "core.h"
 #include "device.h"
 #include <limits>
+#include "synchronization.h"
+#include <algorithm>
 
 CommandBuffer::CommandBuffer(int32_t QueueIndex)
 	: mQueueIndex(QueueIndex)
@@ -40,42 +42,46 @@ void CommandBuffer::End()
 
 }
 
-void CommandBuffer::Submit(bool Wait, std::vector<VkSemaphore> Signal, std::vector<VkSemaphore> WaitFor, std::vector<PipelineStage> WaitStage)
+void CommandBuffer::Submit(bool Wait, std::vector<Semaphore*> Signal, std::vector<Semaphore*> WaitFor, std::vector<PipelineStage> WaitStage)
 {
-	VkFence WaitFence = nullptr;
+
 	if (Wait)
 	{
-		const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
-
-		VkFenceCreateInfo FenceInfo = {};
-		FenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-		Assert(vkCreateFence(Device, &FenceInfo, nullptr, &WaitFence) == VK_SUCCESS)
+		Fence WaitFence(false);
+		Submit(&WaitFence, Signal, WaitFor, WaitStage);
+		WaitFence.Wait();
 	}
-
-	Submit(WaitFence, Signal, WaitFor, WaitStage);
-
-	if (Wait)
+	else
 	{
-		const auto Device = VulkanCore::Get().GetDevice()->GetDevice();
-		vkWaitForFences(Device, 1, &WaitFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+		Submit(nullptr, Signal, WaitFor, WaitStage);
 	}
 
 }
 
-void CommandBuffer::Submit(VkFence CustomFence, std::vector<VkSemaphore> Signal, std::vector<VkSemaphore> WaitFor, std::vector<PipelineStage> WaitStage)
+void CommandBuffer::Submit(Fence* CustomFence, std::vector<Semaphore*> Signal, std::vector<Semaphore*> WaitFor, std::vector<PipelineStage> WaitStage)
 {
 	const auto Queue = VulkanCore::Get().GetDevice()->GetQueueByIndex(mQueueIndex);
+
+	std::vector<VkSemaphore> RawSignalSemaphores(Signal.size());
+	std::vector<VkSemaphore> RawWaitForSemaphores(WaitFor.size());
+
+	std::transform(Signal.begin(), Signal.end(), RawSignalSemaphores.begin(), [](auto* ElemA) {
+		return ElemA->Get();
+	});
+
+	std::transform(WaitFor.begin(), WaitFor.end(), RawWaitForSemaphores.begin(), [](auto* ElemA) {
+		return ElemA->Get();
+	});
 
 	VkSubmitInfo SubmitInfo = {};
 	SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	SubmitInfo.commandBufferCount = 1;
 	SubmitInfo.pCommandBuffers = &mCommandBuffer;
-	SubmitInfo.waitSemaphoreCount = static_cast<uint32_t>(WaitFor.size());
-	SubmitInfo.pWaitSemaphores = WaitFor.data();
-	SubmitInfo.signalSemaphoreCount = static_cast<uint32_t>(Signal.size());
-	SubmitInfo.pSignalSemaphores = Signal.data();
+	SubmitInfo.waitSemaphoreCount = static_cast<uint32_t>(RawWaitForSemaphores.size());
+	SubmitInfo.pWaitSemaphores = RawWaitForSemaphores.data();
+	SubmitInfo.signalSemaphoreCount = static_cast<uint32_t>(RawSignalSemaphores.size());
+	SubmitInfo.pSignalSemaphores = RawSignalSemaphores.data();
 	SubmitInfo.pWaitDstStageMask = reinterpret_cast<VkPipelineStageFlags*>(WaitStage.data());
 
-	Assert(vkQueueSubmit(Queue, 1, &SubmitInfo, CustomFence) == VK_SUCCESS);
+	Assert(vkQueueSubmit(Queue, 1, &SubmitInfo, CustomFence ? CustomFence->Get() : nullptr) == VK_SUCCESS);
 }

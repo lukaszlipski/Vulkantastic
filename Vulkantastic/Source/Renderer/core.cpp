@@ -32,6 +32,9 @@ bool VulkanCore::Shutdown()
 {
 	vkDeviceWaitIdle(mDevice->GetDevice());
 
+	vkDestroyCommandPool(mDevice->GetDevice(), GetGraphicsCommandPoolForCurrentThread(), nullptr);
+	vkDestroyCommandPool(mDevice->GetDevice(), GetComputeCommandPoolForCurrentThread(), nullptr);
+
 	delete mSwapChain;
 	delete mDevice;
 

@@ -142,6 +142,7 @@ python ./Scripts/PreprocessVertexDefinitions.py</Command>
     <ClInclude Include="Source\Renderer\image_view.h" />
     <ClInclude Include="Source\Renderer\memory_manager.h" />
     <ClInclude Include="Source\Renderer\push_constant_buffer.h" />
+    <ClInclude Include="Source\Renderer\synchronization.h" />
     <ClInclude Include="Source\Renderer\uniform_buffer.h" />
     <ClInclude Include="Source\Renderer\pipeline.h" />
     <ClInclude Include="Source\Renderer\render_pass.h" />
@@ -169,6 +170,7 @@ python ./Scripts/PreprocessVertexDefinitions.py</Command>
     <ClCompile Include="Source\Renderer\image_view.cpp" />
     <ClCompile Include="Source\Renderer\memory_manager.cpp" />
     <ClCompile Include="Source\Renderer\push_constant_buffer.cpp" />
+    <ClCompile Include="Source\Renderer\synchronization.cpp" />
     <ClCompile Include="Source\Renderer\uniform_buffer.cpp" />
     <ClCompile Include="Source\Renderer\pipeline.cpp" />
     <ClCompile Include="Source\Renderer\pipeline_creation.cpp" />
