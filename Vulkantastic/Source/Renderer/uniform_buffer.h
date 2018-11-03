@@ -1,6 +1,7 @@
 #pragma once
 #include "shader_reflection.h"
 #include <memory>
+#include "../Utilities/assert.h"
 
 class UniformBuffer
 {

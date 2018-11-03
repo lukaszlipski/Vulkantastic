@@ -6,6 +6,22 @@
 #include "../Renderer/memory_manager.h"
 #include "../Renderer/shader.h"
 #include "../Renderer/swap_chain.h"
+#include "../Renderer/vertex_definitions.h"
+#include "../Renderer/buffer.h"
+#include "../Renderer/image.h"
+#include "../Renderer/command_buffer.h"
+#include "../Renderer/image_view.h"
+#include "../Renderer/sampler.h"
+#include "../Renderer/pipeline.h"
+#include "../Renderer/framebuffer.h"
+#include "../Renderer/uniform_buffer.h"
+#include "../Renderer/push_constant_buffer.h"
+#include "../Renderer/synchronization.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#define GLM_FORCE_RADIANS
+#include "glm/glm.hpp"
+#include <glm/gtc/matrix_transform.hpp>
 #include "assert.h"
 
 

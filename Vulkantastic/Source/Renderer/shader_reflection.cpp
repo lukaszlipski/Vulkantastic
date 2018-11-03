@@ -110,6 +110,8 @@ int32_t ShaderReflection::GetSizeForFormat(VariableType Format)
 	case VariableType::FLOAT4:
 	case VariableType::INT4:
 		return 16;
+	case VariableType::MAT4x4:
+		return 16 * 4;
 	}
 	Assert(false); // Unsupported format
 	return 0;

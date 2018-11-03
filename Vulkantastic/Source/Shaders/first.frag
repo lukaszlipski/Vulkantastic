@@ -14,7 +14,7 @@ layout(binding=2) buffer UniformBuffer2
 
 layout(push_constant) uniform PushConstant2
 {
-	layout(offset = 16) vec3 CustomColor;
+	layout(offset = 80) vec3 CustomColor;
 };
 
 void main()

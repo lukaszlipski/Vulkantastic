@@ -130,8 +130,6 @@ python ./Scripts/PreprocessVertexDefinitions.py</Command>
     <ClInclude Include="Renderer\core.h" />
     <ClInclude Include="Source\File\file.h" />
     <ClInclude Include="Source\File\path.h" />
-    <ClInclude Include="Source\Math\vector2d.h" />
-    <ClInclude Include="Source\Math\vector3d.h" />
     <ClInclude Include="Source\Renderer\buffer.h" />
     <ClInclude Include="Source\Renderer\command_buffer.h" />
     <ClInclude Include="Source\Renderer\core.h" />

@@ -1,19 +1,5 @@
 #include "Utilities/Engine.h"
 #include <array>
-#include "Renderer/vertex_definitions.h"
-#include "Utilities/assert.h"
-#include "Renderer/buffer.h"
-#include "Renderer/image.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-#include "Renderer/command_buffer.h"
-#include "Renderer/image_view.h"
-#include "Renderer/sampler.h"
-#include "Renderer/pipeline.h"
-#include "Renderer/framebuffer.h"
-#include "Renderer/uniform_buffer.h"
-#include "Renderer/push_constant_buffer.h"
-#include "Renderer/synchronization.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -175,14 +161,17 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		
 		auto UBptr = DescInst->GetUniformBuffer("UBInstance");
 
-		Vector2D UBData = { 0.1f, 0.1f };
+		glm::vec2 UBData = { 0.1f, 0.1f };
 		UBptr->Set("Offset", UBData);
 
-		Vector2D VertPCData = { -0.2f,-0.3f };
-		Vector3D FragPCData = { 0.0f,1.0f,0.0f };
+		glm::vec2 VertPCData = { -0.2f,-0.3f };
+		glm::vec3 FragPCData = { 0.0f,1.0f,0.0f };
 
 		auto PCVertPtr = DescInst->GetPushConstantBuffer(ShaderType::VERTEX);
 		PCVertPtr->Set("CustomOffset", VertPCData);
+
+		auto MVP = glm::translate(glm::mat4(1), glm::vec3(0.3f, 0.0f, 0.0f));
+		PCVertPtr->Set("MVP", MVP);
 
 		auto PCFragPtr = DescInst->GetPushConstantBuffer(ShaderType::FRAGMENT);
 		PCFragPtr->Set("CustomColor", FragPCData);

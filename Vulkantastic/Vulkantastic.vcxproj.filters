@@ -51,12 +51,6 @@
     <ClInclude Include="Source\Renderer\vertex_definitions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\vector2d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Math\vector3d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Renderer\vertex_definitions_inc.h">
       <Filter>Header Files</Filter>
     </ClInclude>

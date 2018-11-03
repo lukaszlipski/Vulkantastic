@@ -20,12 +20,13 @@ out gl_PerVertex {
 
 layout(push_constant) uniform PushConstant
 {
+	layout(offset = 0) mat4 MVP;
 	vec2 CustomOffset;
 };
 
 void main()
 {
-    gl_Position  = vec4(Position + Offset + UBInstance.Offset + CustomOffset, 0.0f, 1.0f);
+    gl_Position  = MVP * vec4(Position + Offset + UBInstance.Offset + CustomOffset, 0.0f, 1.0f);
 	fColor = Color;
 	fTexCoord = TexCoord;
 }
