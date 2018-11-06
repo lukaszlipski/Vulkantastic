@@ -12,10 +12,19 @@ namespace VertexDefinition
 		glm::vec2 TexCoord;
 	};
 
+	struct StaticMesh
+	{
+		DECLARE_VERTEX_FORMAT()
+		glm::vec3 Position;
+		glm::vec2 TexCoord;
+		glm::vec3 Normal;
+		glm::vec3 Tangent;
+	};
+
 	struct SimpleInstanced
 	{
 		DECLARE_VERTEX_FORMAT_INST()
-		glm::vec2 Offset;
+		glm::vec3 Offset;
 	};
 
 }

@@ -92,7 +92,8 @@
     </Link>
     <PreBuildEvent>
       <Command>python ./Scripts/CompileShaders.py &amp; 
-python ./Scripts/PreprocessVertexDefinitions.py</Command>
+python ./Scripts/PreprocessVertexDefinitions.py &amp;
+python ./Scripts/PreprocessMeshes.py</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

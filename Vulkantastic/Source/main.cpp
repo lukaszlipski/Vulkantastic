@@ -28,37 +28,49 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		// Pipeline
 		PipelineShaders Shaders{ VertexShader, FragmentShader };
 
-		GraphicsPipeline<VertexDefinition::Simple, VertexDefinition::SimpleInstanced> Pipeline(GraphicsRenderPass, Shaders);
+		GraphicsPipeline<VertexDefinition::StaticMesh, VertexDefinition::SimpleInstanced> Pipeline(GraphicsRenderPass, Shaders);
 
-		// Vertex buffer data
-		const std::vector<VertexDefinition::Simple> Vertices = {
-			{ { -0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f }, {0.0f, 1.0f} }, // 0
-			{ { 0.5f, 0.5f },{ 0.0f, 1.0f, 0.0f }, {1.0f, 1.0f} },  // 1
-			{ { 0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f }, {1.0f, 0.0f} }, // 2
-			{ { -0.5f, -0.5f },{ 0.0f, 0.0f, 1.0f }, {0.0f, 0.0f} } // 3
-		};
+		// Load mesh
+
+		std::vector<VertexDefinition::StaticMesh> MeshVertices;
+		std::vector<uint32_t> MeshIndicies;
+		{
+			auto MeshPath = File::Get().CurrentDirectory() + "/Meshes/test2.sm";
+			auto MeshFileSize = File::Get().Size(MeshPath);
+			auto Handle = File::Get().OpenRead(MeshPath);
+
+			int32_t VertAttribLength;
+
+			Handle->Read(reinterpret_cast<uint8_t*>(&VertAttribLength), 4);
+
+			MeshVertices.resize(VertAttribLength * sizeof(VertexDefinition::StaticMesh));
+			Handle->Read(reinterpret_cast<uint8_t*>(MeshVertices.data()), VertAttribLength * sizeof(VertexDefinition::StaticMesh));
+
+			int32_t IndiciesLength;
+
+			Handle->Read(reinterpret_cast<uint8_t*>(&IndiciesLength), 4);
+			MeshIndicies.resize(IndiciesLength);
+
+			Handle->Read(reinterpret_cast<uint8_t*>(MeshIndicies.data()), IndiciesLength * 4);
+
+		}
 
 		// Create vertex buffer
 		uint32_t GraphicsQueueIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
-		Buffer VertexBuffer({ GraphicsQueueIndex }, BufferUsage::VERTEX | BufferUsage::TRANSFER_DST, true, sizeof(VertexDefinition::Simple) * Vertices.size(), Vertices.data());
+		Buffer VertexBuffer({ GraphicsQueueIndex }, BufferUsage::VERTEX | BufferUsage::TRANSFER_DST, true, sizeof(VertexDefinition::StaticMesh) * MeshVertices.size(), MeshVertices.data());
 
 		// Instance data
 		const std::vector<VertexDefinition::SimpleInstanced> VerticesInst = {
-			{ { 0.0f, -0.5f } },
-			{ { 0.5f, 0.5f } },
-			{ { -0.5f, 0.5f } }
+			{ { -1.0f, 1.0f, 1.0f } },
+			{ { 1.0f, -1.0f, 1.0f } },
+			{ { 1.0f, 1.0f, -1.0f } }
 		};
 
 		// Create vertex buffer for instance data
 		Buffer VertexBufferInst({ GraphicsQueueIndex }, BufferUsage::VERTEX | BufferUsage::TRANSFER_DST, true, sizeof(VertexDefinition::SimpleInstanced) * VerticesInst.size(), VerticesInst.data());
 
-		// Index buffer data
-		const std::vector<int16_t> Indicies = {
-			0,2,1,
-			0,3,2
-		};
 		// Create index buffer
-		Buffer IndexBuffer({ GraphicsQueueIndex }, BufferUsage::INDEX | BufferUsage::TRANSFER_DST, true, sizeof(int16_t) * Indicies.size(), Indicies.data());
+		Buffer IndexBuffer({ GraphicsQueueIndex }, BufferUsage::INDEX | BufferUsage::TRANSFER_DST, true, sizeof(uint32_t) * MeshIndicies.size(), MeshIndicies.data());
 
 		// Create image buffer
 		int32_t Width, Height, Comp;
@@ -170,7 +182,14 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		auto PCVertPtr = DescInst->GetPushConstantBuffer(ShaderType::VERTEX);
 		PCVertPtr->Set("CustomOffset", VertPCData);
 
-		auto MVP = glm::translate(glm::mat4(1), glm::vec3(0.3f, 0.0f, 0.0f));
+		
+		auto Aspect = Extend.width / float(Extend.height);
+		auto Projection = glm::perspective(3.14f / 4.0f, Aspect, 1.0f, 100.0f);
+		auto Correction = glm::mat4(glm::vec4(1, 0, 0, 0), glm::vec4(0, -1, 0, 0), glm::vec4(0, 0, 1.0f / 2.0f, 1.0f / 2.0f), glm::vec4(0, 0, 0, 1));
+
+		auto Camera = glm::lookAt(glm::vec3(3, 3, 3), glm::vec3(0,0,0) , glm::vec3(0, 1, 0));
+		auto MVP = Correction * Projection * Camera * glm::translate(glm::mat4(1), glm::vec3(0.3f, 0.0f, 0.0f));
+
 		PCVertPtr->Set("MVP", MVP);
 
 		auto PCFragPtr = DescInst->GetPushConstantBuffer(ShaderType::FRAGMENT);
@@ -208,7 +227,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 0, 1, &BufferTmp, Offsets);
 			auto InstBufferTmp = VertexBufferInst.GetBuffer();
 			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 1, 1, &InstBufferTmp, Offsets);
-			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 			auto PCVertPtr = DescInst->GetPushConstantBuffer(ShaderType::VERTEX);
 			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, PCVertPtr->GetOffset(), PCVertPtr->GetSize(), PCVertPtr->GetBuffer());
@@ -220,7 +239,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, static_cast<uint32_t>(Viewports.size()), Viewports.data());
 			auto Set = DescInst->GetSet();
 			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline.GetPipelineLayout()->GetPipelineLayout(), 0, 1, &Set, 0, nullptr);
-			vkCmdDrawIndexed(Cb->GetCommandBuffer(), Indicies.size(), 3, 0, 0, 0);
+			vkCmdDrawIndexed(Cb->GetCommandBuffer(), MeshIndicies.size(), 3, 0, 0, 0);
 			vkCmdEndRenderPass(Cb->GetCommandBuffer());
 
 			Cb->End();

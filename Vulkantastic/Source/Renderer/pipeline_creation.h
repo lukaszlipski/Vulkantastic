@@ -110,7 +110,7 @@ namespace PipelineCreation
 	class RasterizationState
 	{
 	public:
-		RasterizationState(CullMode Cull = CullMode::BACK, FrontFace FaceDir = FrontFace::CLOCKWISE);
+		RasterizationState(CullMode Cull = CullMode::BACK, FrontFace FaceDir = FrontFace::COUNTERCLOCKWISE);
 
 		inline VkPipelineRasterizationStateCreateInfo* GetRasterizationState() { return &mRasterizationState; }
 	private:
