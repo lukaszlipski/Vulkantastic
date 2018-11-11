@@ -12,6 +12,8 @@ public:
 	bool Write(const uint8_t* Buffer, int32_t Size, bool Append = false);
 	bool Write(const std::string& Buffer, bool Append = false);
 
+	inline int32_t ReadBytes() const { return mRead; }
+
 private:
 	void* mHandle;
 	int32_t mRead;

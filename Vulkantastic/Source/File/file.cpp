@@ -6,7 +6,7 @@
 bool FileHandle::Read(uint8_t* Buffer, int32_t Size)
 {
 	int32_t ReadCount = File::Get().Read(mHandle, Buffer, Size, mRead);
-	mRead = ReadCount;
+	mRead += ReadCount;
 	return ReadCount;
 }
 

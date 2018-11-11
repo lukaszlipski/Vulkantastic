@@ -23,6 +23,7 @@
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include "assert.h"
+#include "../RendererFE/static_mesh.h"
 
 
 namespace Engine
@@ -38,10 +39,12 @@ namespace Engine
 #endif
 		Assert(MemoryManager::Get().Startup());
 		Assert(ShaderManager::Get().Startup());
+		Assert(StaticMeshManager::Get().Startup());
 	}
 
 	void Shutdown()
 	{
+		Assert(StaticMeshManager::Get().Shutdown());
 		Assert(ShaderManager::Get().Shutdown());
 		Assert(MemoryManager::Get().Shutdown());
 		Assert(VulkanCore::Get().Shutdown());

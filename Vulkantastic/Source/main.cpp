@@ -31,33 +31,10 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		GraphicsPipeline<VertexDefinition::StaticMesh, VertexDefinition::SimpleInstanced> Pipeline(GraphicsRenderPass, Shaders);
 
 		// Load mesh
-
-		std::vector<VertexDefinition::StaticMesh> MeshVertices;
-		std::vector<uint32_t> MeshIndicies;
-		{
-			auto MeshPath = File::Get().CurrentDirectory() + "/Meshes/test2.sm";
-			auto MeshFileSize = File::Get().Size(MeshPath);
-			auto Handle = File::Get().OpenRead(MeshPath);
-
-			int32_t VertAttribLength;
-
-			Handle->Read(reinterpret_cast<uint8_t*>(&VertAttribLength), 4);
-
-			MeshVertices.resize(VertAttribLength * sizeof(VertexDefinition::StaticMesh));
-			Handle->Read(reinterpret_cast<uint8_t*>(MeshVertices.data()), VertAttribLength * sizeof(VertexDefinition::StaticMesh));
-
-			int32_t IndiciesLength;
-
-			Handle->Read(reinterpret_cast<uint8_t*>(&IndiciesLength), 4);
-			MeshIndicies.resize(IndiciesLength);
-
-			Handle->Read(reinterpret_cast<uint8_t*>(MeshIndicies.data()), IndiciesLength * 4);
-
-		}
+		auto* Mesh = StaticMeshManager::Get().Find("test2");
 
 		// Create vertex buffer
 		uint32_t GraphicsQueueIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
-		Buffer VertexBuffer({ GraphicsQueueIndex }, BufferUsage::VERTEX | BufferUsage::TRANSFER_DST, true, sizeof(VertexDefinition::StaticMesh) * MeshVertices.size(), MeshVertices.data());
 
 		// Instance data
 		const std::vector<VertexDefinition::SimpleInstanced> VerticesInst = {
@@ -68,9 +45,6 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		// Create vertex buffer for instance data
 		Buffer VertexBufferInst({ GraphicsQueueIndex }, BufferUsage::VERTEX | BufferUsage::TRANSFER_DST, true, sizeof(VertexDefinition::SimpleInstanced) * VerticesInst.size(), VerticesInst.data());
-
-		// Create index buffer
-		Buffer IndexBuffer({ GraphicsQueueIndex }, BufferUsage::INDEX | BufferUsage::TRANSFER_DST, true, sizeof(uint32_t) * MeshIndicies.size(), MeshIndicies.data());
 
 		// Create image buffer
 		int32_t Width, Height, Comp;
@@ -222,12 +196,15 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 			vkCmdBeginRenderPass(Cb->GetCommandBuffer(), &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdBindPipeline(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline.GetPipeline());
+
 			VkDeviceSize Offsets[] = { 0 };
-			auto BufferTmp = VertexBuffer.GetBuffer();
+			auto BufferTmp = Mesh->GetVertexBuffer(0)->GetBuffer();
 			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 0, 1, &BufferTmp, Offsets);
+
 			auto InstBufferTmp = VertexBufferInst.GetBuffer();
 			vkCmdBindVertexBuffers(Cb->GetCommandBuffer(), 1, 1, &InstBufferTmp, Offsets);
-			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), Mesh->GetIndexBuffer(0)->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 			auto PCVertPtr = DescInst->GetPushConstantBuffer(ShaderType::VERTEX);
 			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, PCVertPtr->GetOffset(), PCVertPtr->GetSize(), PCVertPtr->GetBuffer());
@@ -239,7 +216,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, static_cast<uint32_t>(Viewports.size()), Viewports.data());
 			auto Set = DescInst->GetSet();
 			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline.GetPipelineLayout()->GetPipelineLayout(), 0, 1, &Set, 0, nullptr);
-			vkCmdDrawIndexed(Cb->GetCommandBuffer(), MeshIndicies.size(), 3, 0, 0, 0);
+			vkCmdDrawIndexed(Cb->GetCommandBuffer(), Mesh->GetIndiciesSize(0), 3, 0, 0, 0);
 			vkCmdEndRenderPass(Cb->GetCommandBuffer());
 
 			Cb->End();
