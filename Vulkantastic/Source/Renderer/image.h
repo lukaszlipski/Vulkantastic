@@ -66,7 +66,7 @@ struct ImageSettings
 class Image
 {
 public:
-	Image(std::initializer_list<uint32_t> QueueIndices, ImageUsage Flags, bool GPUSide, ImageSettings Settings = {}, void* Data = nullptr);
+	Image(std::vector<uint32_t> QueueIndices, ImageUsage Flags, bool GPUSide, ImageSettings Settings = {}, void* Data = nullptr);
 	~Image();
 
 	Image(const Image& Rhs) = delete;

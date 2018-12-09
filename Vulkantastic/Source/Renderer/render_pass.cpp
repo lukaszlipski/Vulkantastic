@@ -127,6 +127,10 @@ RenderPass& RenderPass::operator=(RenderPass&& Rhs) noexcept
 	mRenderPass = Rhs.mRenderPass;
 	Rhs.mRenderPass = nullptr;
 
+	mColorAttachments = std::move(Rhs.mColorAttachments);
+	mDepthAttachment = Rhs.mDepthAttachment;
+	mDepthEnabled = Rhs.mDepthEnabled;
+
 	return *this;
 }
 

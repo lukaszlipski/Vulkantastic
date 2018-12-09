@@ -4,7 +4,7 @@
 #include "../Utilities/assert.h"
 #include "command_buffer.h"
 
-Image::Image(std::initializer_list<uint32_t> QueueIndices, ImageUsage Flags, bool GPUSide, ImageSettings Settings /* = {} */, void* Data /* = nullptr */)
+Image::Image(std::vector<uint32_t> QueueIndices, ImageUsage Flags, bool GPUSide, ImageSettings Settings /* = {} */, void* Data /* = nullptr */)
 	: mQueueIndices(QueueIndices), mFlags(Flags), mGPUSide(GPUSide), mSettings(Settings)
 {
 	

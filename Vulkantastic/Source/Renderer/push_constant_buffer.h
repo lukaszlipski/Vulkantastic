@@ -1,5 +1,6 @@
 #pragma once
 #include "shader_reflection.h"
+#include "../Utilities/assert.h"
 
 class PushConstantBuffer
 {

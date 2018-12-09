@@ -28,8 +28,6 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		// Pipeline
 		PipelineShaders Shaders{ VertexShader, FragmentShader };
 
-		GraphicsPipeline<VertexDefinition::StaticMesh, VertexDefinition::SimpleInstanced> Pipeline(GraphicsRenderPass, Shaders);
-
 		// Load mesh
 		auto* Mesh = StaticMeshManager::Get().Find("test2");
 
@@ -51,6 +49,8 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		stbi_uc* Pixels = stbi_load("Textures/test.jpg", &Width, &Height, &Comp, STBI_rgb_alpha);
 		const int32_t ImageSize = Width * Height * STBI_rgb_alpha;
 
+		stbi_uc* Pixels2 = stbi_load("Textures/test2.jpg", &Width, &Height, &Comp, STBI_rgb_alpha);
+
 		ImageSettings Settings = {};
 		Settings.Depth = 1;
 		Settings.Height = Height;
@@ -62,12 +62,16 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		Image ImageBuffer({ GraphicsQueueIndex }, ImageUsage::SAMPLED | ImageUsage::TRANSFER_DST | ImageUsage::TRANSFER_SRC, true, Settings, Pixels);
 		ImageBuffer.ChangeLayout(ImageLayout::SHADER_READ);
 
+		Image ImageBuffer2({ GraphicsQueueIndex }, ImageUsage::SAMPLED | ImageUsage::TRANSFER_DST | ImageUsage::TRANSFER_SRC, true, Settings, Pixels2);
+		ImageBuffer2.ChangeLayout(ImageLayout::SHADER_READ);
+
 		// Create image view
 		ImageViewSettings ViewSettings = {};
 		ViewSettings.MipMapLevelCount = ImageBuffer.GetMipMapsCount();
 		ViewSettings.Format = ImageFormat::R8G8B8A8_SRGB;
 
 		ImageView View(&ImageBuffer, ViewSettings);
+		ImageView View2(&ImageBuffer2, ViewSettings);
 
 		// Create depth buffer
 		ImageSettings DepthSettings = {};
@@ -141,22 +145,19 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 		ComputeCB.End();
 
 		// Update descriptor instance
-		auto DescInst = Pipeline.GetDescriptorManager()->GetDescriptorInstance();	
+		auto DescInst = PipelineManager::Get().GetDescriptorInstance<VertexDefinition::StaticMesh, VertexDefinition::SimpleInstanced>(GraphicsRenderPass, Shaders);
+		auto DescInst2 = PipelineManager::Get().GetDescriptorInstance<VertexDefinition::StaticMesh, VertexDefinition::SimpleInstanced>(GraphicsRenderPass, Shaders);
 
 		DescInst->SetImage("Image", View, SamplerInst)->SetBuffer("UBInstance2", ComputeBuffer);
-		
+		DescInst2->SetImage("Image", View2, SamplerInst)->SetBuffer("UBInstance2", ComputeBuffer);
+
 		auto UBptr = DescInst->GetUniformBuffer("UBInstance");
 
-		glm::vec2 UBData = { 0.1f, 0.1f };
-		UBptr->Set("Offset", UBData);
-
-		glm::vec2 VertPCData = { -0.2f,-0.3f };
-		glm::vec3 FragPCData = { 0.0f,1.0f,0.0f };
-
+		UBptr->Set("Offset", glm::vec2{ 0.1f, 0.1f });
+	
 		auto PCVertPtr = DescInst->GetPushConstantBuffer(ShaderType::VERTEX);
-		PCVertPtr->Set("CustomOffset", VertPCData);
-
-		
+		PCVertPtr->Set("CustomOffset", glm::vec2{ -0.2f,-0.3f });
+	
 		auto Aspect = Extend.width / float(Extend.height);
 		auto Projection = glm::perspective(3.14f / 4.0f, Aspect, 1.0f, 100.0f);
 		auto Correction = glm::mat4(glm::vec4(1, 0, 0, 0), glm::vec4(0, -1, 0, 0), glm::vec4(0, 0, 1.0f / 2.0f, 1.0f / 2.0f), glm::vec4(0, 0, 0, 1));
@@ -166,13 +167,22 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		PCVertPtr->Set("MVP", MVP);
 
+		PCVertPtr = DescInst2->GetPushConstantBuffer(ShaderType::VERTEX);
+		auto MVP2 = Correction * Projection * Camera * glm::translate(glm::mat4(1), glm::vec3(-0.3f, 0.5f, 0.0f));
+		PCVertPtr->Set("MVP", MVP2);
+
 		auto PCFragPtr = DescInst->GetPushConstantBuffer(ShaderType::FRAGMENT);
-		PCFragPtr->Set("CustomColor", FragPCData);
+		PCFragPtr->Set("CustomColor", glm::vec3{ 0.0f,1.0f,0.0f });
+		PCFragPtr = DescInst2->GetPushConstantBuffer(ShaderType::FRAGMENT);
+		PCFragPtr->Set("CustomColor", glm::vec3{ 1.0f, 0.0f,0.0f });
 
 		DescInst->Update();
+		DescInst2->Update();
 
 		// Allocate and init command buffers
 		std::vector<CommandBuffer*> CommandBuffers;
+
+		IGraphicsPipeline* Pipeline = PipelineManager::Get().GetPipelineByKey(DescInst->GetPipelineKey());
 
 		const int32_t GraphicsIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
 
@@ -195,7 +205,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			RenderPassBeginInfo.pClearValues = Clear;
 
 			vkCmdBeginRenderPass(Cb->GetCommandBuffer(), &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdBindPipeline(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline.GetPipeline());
+			vkCmdBindPipeline(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline->GetPipeline());
 
 			VkDeviceSize Offsets[] = { 0 };
 			auto BufferTmp = Mesh->GetVertexBuffer(0)->GetBuffer();
@@ -207,15 +217,24 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 			vkCmdBindIndexBuffer(Cb->GetCommandBuffer(), Mesh->GetIndexBuffer(0)->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 			auto PCVertPtr = DescInst->GetPushConstantBuffer(ShaderType::VERTEX);
-			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, PCVertPtr->GetOffset(), PCVertPtr->GetSize(), PCVertPtr->GetBuffer());
+			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, PCVertPtr->GetOffset(), PCVertPtr->GetSize(), PCVertPtr->GetBuffer());
 
 			auto PCFragPtr = DescInst->GetPushConstantBuffer(ShaderType::FRAGMENT);
-			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline.GetPipelineLayout()->GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, PCFragPtr->GetOffset(), PCFragPtr->GetSize(), PCFragPtr->GetBuffer());
+			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline->GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, PCFragPtr->GetOffset(), PCFragPtr->GetSize(), PCFragPtr->GetBuffer());
 
-			auto Viewports = Pipeline.GetViewportState()->GetViewports();
+			auto Viewports = Pipeline->GetViewports();
 			vkCmdSetViewport(Cb->GetCommandBuffer(), 0, static_cast<uint32_t>(Viewports.size()), Viewports.data());
 			auto Set = DescInst->GetSet();
-			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline.GetPipelineLayout()->GetPipelineLayout(), 0, 1, &Set, 0, nullptr);
+			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline->GetPipelineLayout(), 0, 1, &Set, 0, nullptr);
+			vkCmdDrawIndexed(Cb->GetCommandBuffer(), Mesh->GetIndiciesSize(0), 3, 0, 0, 0);
+			//vkCmdEndRenderPass(Cb->GetCommandBuffer());
+
+			PCVertPtr = DescInst2->GetPushConstantBuffer(ShaderType::VERTEX);
+			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, PCVertPtr->GetOffset(), PCVertPtr->GetSize(), PCVertPtr->GetBuffer());
+			PCFragPtr = DescInst2->GetPushConstantBuffer(ShaderType::FRAGMENT);
+			vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline->GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, PCFragPtr->GetOffset(), PCFragPtr->GetSize(), PCFragPtr->GetBuffer());
+			Set = DescInst2->GetSet();
+			vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline->GetPipelineLayout(), 0, 1, &Set, 0, nullptr);
 			vkCmdDrawIndexed(Cb->GetCommandBuffer(), Mesh->GetIndiciesSize(0), 3, 0, 0, 0);
 			vkCmdEndRenderPass(Cb->GetCommandBuffer());
 

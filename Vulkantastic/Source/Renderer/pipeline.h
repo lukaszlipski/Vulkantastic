@@ -26,7 +26,26 @@ private:
 
 };
 
-class ComputePipeline
+class IPipeline
+{
+public:
+	virtual ~IPipeline() = default;
+
+	virtual VkPipeline GetPipeline() const = 0;
+	virtual DescriptorManager* GetDescriptorManager() = 0;
+	virtual VkPipelineLayout GetPipelineLayout() = 0;
+
+};
+
+class IGraphicsPipeline : public IPipeline
+{
+public:
+	
+	virtual std::vector<VkViewport> GetViewports() = 0;
+	
+};
+
+class ComputePipeline : public IPipeline
 {
 public:
 	ComputePipeline(Shader* ComputeShader);
@@ -38,9 +57,9 @@ public:
 	ComputePipeline(ComputePipeline&& Rhs) = delete;
 	ComputePipeline& operator=(ComputePipeline&& Rhs) = delete;
 
-	inline VkPipeline GetPipeline() const { return mPipeline; }
-	inline VkPipelineLayout GetPipelineLayout() { return mPipelineLayout; }
-	inline DescriptorManager* GetDescriptorManager() { return mDescriptorManager.get(); }
+	virtual VkPipeline GetPipeline() const override { return mPipeline; }
+	virtual DescriptorManager* GetDescriptorManager() override { return mDescriptorManager.get(); }
+	virtual VkPipelineLayout GetPipelineLayout() override { return mPipelineLayout; }
 
 private:
 	VkPipeline mPipeline = nullptr;
@@ -49,8 +68,9 @@ private:
 
 };
 
+
 template<typename ...VertexDef>
-class GraphicsPipeline
+class GraphicsPipeline : public IGraphicsPipeline
 {
 public:
 	GraphicsPipeline(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders);
@@ -62,10 +82,10 @@ public:
 	GraphicsPipeline(GraphicsPipeline&& Rhs) = delete;
 	GraphicsPipeline& operator=(GraphicsPipeline&& Rhs) = delete;
 
-	inline VkPipeline GetPipeline() const { return mPipeline; }
-	inline PipelineCreation::PipelineLayout* GetPipelineLayout() { return mPipelineLayout.get(); }
-	inline PipelineCreation::ViewportState* GetViewportState() { return mViewportState.get(); }
-	inline DescriptorManager* GetDescriptorManager() { return mDescriptorManager.get(); }
+	virtual VkPipeline GetPipeline() const override { return mPipeline; }
+	virtual DescriptorManager* GetDescriptorManager() override { return mDescriptorManager.get(); }
+	virtual VkPipelineLayout GetPipelineLayout() override { return mPipelineLayout->GetPipelineLayout(); }
+	virtual std::vector<VkViewport> GetViewports() override { return mViewportState->GetViewports(); }
 
 private:
 	VkPipeline mPipeline = nullptr;

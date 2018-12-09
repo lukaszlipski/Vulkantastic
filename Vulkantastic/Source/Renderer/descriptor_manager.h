@@ -27,6 +27,7 @@ public:
 	inline std::vector<Uniform> GetUniforms() const { return mUniforms; }
 	inline std::vector<Uniform> GetPushConstantsForShader(ShaderType Type) { return mPushConstants[Type]; }
 	inline std::map<ShaderType, std::vector<Uniform>> GetPushConstants() const { return mPushConstants;	}
+	inline std::vector<Shader*> GetShaders() const { return mShaders; }
 
 	PipelineType GetPipelineType() const;
 
@@ -37,6 +38,7 @@ private:
 	std::vector<Uniform> mUniforms;
 	std::map<ShaderType, std::vector<Uniform>> mPushConstants;
 	PipelineType mPipelineType;
+	std::vector<Shader*> mShaders;
 
 };
 
@@ -57,6 +59,7 @@ public:
 	DescriptorInst& operator=(DescriptorInst&& Rhs) noexcept;
 
 	inline VkDescriptorSet GetSet() const { return mSet; }
+	inline std::string GetPipelineKey() const { return mPipelineKey; }
 
 	DescriptorInst* SetBuffer(const std::string& Name, const Buffer& BufferToSet);
 	DescriptorInst* SetImage(const std::string& Name, const ImageView& View, const Sampler& ImageSampler);
@@ -80,4 +83,6 @@ private:
 
 	UniformBuffersList mUniformBuffers;
 	PushConstantBuffersList mPushConstantBuffers;
+
+	std::string mPipelineKey; // PipelineManager::KeyType 
 };

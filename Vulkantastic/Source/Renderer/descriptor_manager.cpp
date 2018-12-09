@@ -7,10 +7,12 @@
 #include "pipeline.h"
 #include "swap_chain.h"
 #include "push_constant_buffer.h"
+#include "pipeline_manager.h"
 
 constexpr int32_t MaxInstances = 128;
 
 DescriptorManager::DescriptorManager(std::vector<Shader*> Shaders)
+	: mShaders(Shaders)
 {
 	Assert(Shaders.size());
 
@@ -28,7 +30,7 @@ DescriptorManager::DescriptorManager(std::vector<Shader*> Shaders)
 	std::vector<VkDescriptorSetLayoutBinding> DescLayoutBindings;
 	std::vector<VkDescriptorPoolSize> DescPoolSizes;
 
-	for (auto& Shader : Shaders)
+	for (auto& Shader : mShaders)
 	{
 		auto Uniforms = Shader->GetUniforms();
 		auto PushConstants = Shader->GetPushConstants();
@@ -96,6 +98,13 @@ DescriptorManager& DescriptorManager::operator=(DescriptorManager&& Rhs) noexcep
 
 	mPool = Rhs.mPool;
 	Rhs.mPool = nullptr;
+
+	mUniforms = std::move(Rhs.mUniforms);
+	mPushConstants = std::move(Rhs.mPushConstants);
+	mShaders = std::move(Rhs.mShaders);
+
+	mCurrentInstanceCount = Rhs.mCurrentInstanceCount;
+	mPipelineType = Rhs.mPipelineType;
 
 	return *this;
 }
@@ -292,6 +301,8 @@ DescriptorInst::DescriptorInst(DescriptorManager* DescManager)
 		if (Elem.second.size() <= 0) { return; }
 		PCBuffers[Elem.first] = std::make_unique<PushConstantBuffer>(Elem.second.front());
 	});
+
+	mPipelineKey = PipelineManager::Get().HashShaders(DescManager->GetShaders());
 
 }
 

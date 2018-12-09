@@ -131,6 +131,7 @@ python ./Scripts/PreprocessMeshes.py</Command>
     <ClInclude Include="Renderer\core.h" />
     <ClInclude Include="Source\File\file.h" />
     <ClInclude Include="Source\File\path.h" />
+    <ClInclude Include="Source\Renderer\pipeline_manager.h" />
     <ClInclude Include="Source\RendererFE\static_mesh.h" />
     <ClInclude Include="Source\Renderer\buffer.h" />
     <ClInclude Include="Source\Renderer\command_buffer.h" />
@@ -170,6 +171,7 @@ python ./Scripts/PreprocessMeshes.py</Command>
     <ClCompile Include="Source\Renderer\image.cpp" />
     <ClCompile Include="Source\Renderer\image_view.cpp" />
     <ClCompile Include="Source\Renderer\memory_manager.cpp" />
+    <ClCompile Include="Source\Renderer\pipeline_manager.cpp" />
     <ClCompile Include="Source\Renderer\push_constant_buffer.cpp" />
     <ClCompile Include="Source\Renderer\synchronization.cpp" />
     <ClCompile Include="Source\Renderer\uniform_buffer.cpp" />

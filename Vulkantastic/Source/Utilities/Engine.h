@@ -24,6 +24,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "assert.h"
 #include "../RendererFE/static_mesh.h"
+#include "../Renderer/pipeline_manager.h"
 
 
 namespace Engine
@@ -40,10 +41,12 @@ namespace Engine
 		Assert(MemoryManager::Get().Startup());
 		Assert(ShaderManager::Get().Startup());
 		Assert(StaticMeshManager::Get().Startup());
+		Assert(PipelineManager::Get().Startup());
 	}
 
 	void Shutdown()
 	{
+		Assert(PipelineManager::Get().Shutdown());
 		Assert(StaticMeshManager::Get().Shutdown());
 		Assert(ShaderManager::Get().Shutdown());
 		Assert(MemoryManager::Get().Shutdown());
