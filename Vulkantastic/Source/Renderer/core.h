@@ -30,6 +30,7 @@ public:
 	inline Device* GetDevice() const { return mDevice; }
 	inline SwapChain* GetSwapChain() const { return mSwapChain; }
 	inline int32_t GetImageIndex() const { return mCurrentImageIndex; }
+	VkExtent2D GetExtend() const;
 
 private:
 	bool mDebugMode = false;

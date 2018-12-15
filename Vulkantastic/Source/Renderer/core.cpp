@@ -111,6 +111,11 @@ int32_t VulkanCore::ProgessImageIndex()
 	return mCurrentImageIndex;
 }
 
+VkExtent2D VulkanCore::GetExtend() const
+{
+	return GetDevice()->GetSurfaceCapabilities().currentExtent;
+}
+
 bool VulkanCore::CreateInstance()
 {
 	VkApplicationInfo AppInfo = {};

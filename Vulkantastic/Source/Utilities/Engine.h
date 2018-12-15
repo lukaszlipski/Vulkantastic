@@ -25,6 +25,8 @@
 #include "assert.h"
 #include "../RendererFE/static_mesh.h"
 #include "../Renderer/pipeline_manager.h"
+#include "../RendererFE/deferred_renderer.h"
+#include "../RendererFE/surface_material.h"
 
 
 namespace Engine
@@ -42,10 +44,12 @@ namespace Engine
 		Assert(ShaderManager::Get().Startup());
 		Assert(StaticMeshManager::Get().Startup());
 		Assert(PipelineManager::Get().Startup());
+		Assert(DeferredRenderer::Get().Startup());
 	}
 
 	void Shutdown()
 	{
+		Assert(DeferredRenderer::Get().Shutdown());
 		Assert(PipelineManager::Get().Shutdown());
 		Assert(StaticMeshManager::Get().Shutdown());
 		Assert(ShaderManager::Get().Shutdown());

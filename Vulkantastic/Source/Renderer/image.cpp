@@ -44,6 +44,8 @@ Image::Image(std::vector<uint32_t> QueueIndices, ImageUsage Flags, bool GPUSide,
 
 	Assert(vkCreateImage(Device, &ImageInfo, nullptr, &mImage) == VK_SUCCESS);
 
+	mAllocation.NonLinear = true;
+
 	vkGetImageMemoryRequirements(Device, mImage, &mMemoryRequirements);
 	MemoryManager::Get().Allocate(mAllocation, mMemoryRequirements, mGPUSide);
 	Assert(vkBindImageMemory(Device, mImage, mAllocation.GetMemory(), mAllocation.GetOffset()) == VK_SUCCESS);

@@ -12,8 +12,7 @@ enum class CBUsage
 
 class CommandBuffer
 {
-	//class Semaphore;
-	//class Fence;
+	
 public:
 	CommandBuffer(int32_t QueueIndex);
 	~CommandBuffer();
