@@ -85,6 +85,7 @@ public:
 	inline ImageUsage GetFlags() const { return mFlags; }
 	inline ImageLayout GetCurrentLayout() const { return mCurrentLayout; }
 	inline uint32_t GetMipMapsCount() const { return mMipMapsCount; }
+	inline ImageFormat GetFormat() const { return mSettings.Format; }
 
 	static uint8_t GetNumComponentsByFormat(ImageFormat Format);
 	static int32_t GetSizeInBytesByFormat(ImageFormat Format);

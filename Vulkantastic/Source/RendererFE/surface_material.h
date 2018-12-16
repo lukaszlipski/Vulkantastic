@@ -5,6 +5,7 @@
 #include "../Renderer/vertex_definitions.h"
 #include "../Utilities/assert.h"
 #include "deferred_renderer.h"
+#include "texture_manager.h"
 
 template<typename ...T>
 class SurfaceMaterial
@@ -23,7 +24,7 @@ public:
 
 	SurfaceMaterial& SetMVP(const glm::mat4x4& MVP);
 	SurfaceMaterial& SetCustomColor(const glm::vec3& CustomColor); 
-	SurfaceMaterial& SetAlbedoTexture(const ImageView& AlbedoView, const Sampler& AlbedoSampler);
+	SurfaceMaterial& SetAlbedoTexture(ImageView* const AlbedoView, Sampler* const AlbedoSampler);
 
 	inline DescriptorInst* GetDescriptorInstance() const { return mDescriptorInstance.get(); }
 
@@ -82,6 +83,16 @@ SurfaceMaterial<T...>::SurfaceMaterial(const std::string& VertexShaderName, cons
 	RenderPass* Rp = DeferredRenderer::Get().GetBasePassRenderPass();
 
 	mDescriptorInstance = PipelineManager::Get().GetDescriptorInstance<T...>(*Rp, Shaders);
+
+	ImageView* DefaultView = TextureManager::Get().GetImageView("test.tga");
+
+	// Create sampler
+	SamplerSettings SamplerInstSettings = {};
+	SamplerInstSettings.MaxAnisotropy = 16;
+
+	Sampler* DefaultSampler = TextureManager::Get().GetSampler(SamplerInstSettings);
+
+	SetAlbedoTexture(DefaultView, DefaultSampler);
 }
 
 template<typename ...T>
@@ -103,9 +114,9 @@ SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetCustomColor(const glm::vec3& Cu
 }
 
 template<typename ...T>
-SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetAlbedoTexture(const ImageView& AlbedoView, const Sampler& AlbedoSampler)
+SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetAlbedoTexture(ImageView* const AlbedoView, Sampler* const AlbedoSampler)
 {
-	mDescriptorInstance->SetImage("Albedo", AlbedoView, AlbedoSampler);
+	mDescriptorInstance->SetImage("Albedo", *AlbedoView, *AlbedoSampler);
 
 	return *this;
 }

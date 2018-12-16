@@ -1,5 +1,11 @@
 #pragma once
 #include <stdint.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#define GLM_FORCE_RADIANS
+#include "glm/glm.hpp"
+#include <glm/gtc/matrix_transform.hpp>
+#include "assert.h"
 #include "../File/File.h"
 #include "../Renderer/window.h"
 #include "../Renderer/core.h"
@@ -17,16 +23,11 @@
 #include "../Renderer/uniform_buffer.h"
 #include "../Renderer/push_constant_buffer.h"
 #include "../Renderer/synchronization.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-#define GLM_FORCE_RADIANS
-#include "glm/glm.hpp"
-#include <glm/gtc/matrix_transform.hpp>
-#include "assert.h"
 #include "../RendererFE/static_mesh.h"
 #include "../Renderer/pipeline_manager.h"
 #include "../RendererFE/deferred_renderer.h"
 #include "../RendererFE/surface_material.h"
+#include "../RendererFE/texture_manager.h"
 
 
 namespace Engine
@@ -44,12 +45,16 @@ namespace Engine
 		Assert(ShaderManager::Get().Startup());
 		Assert(StaticMeshManager::Get().Startup());
 		Assert(PipelineManager::Get().Startup());
+		Assert(TextureManager::Get().Startup());
 		Assert(DeferredRenderer::Get().Startup());
 	}
 
 	void Shutdown()
 	{
+		VulkanCore::Get().WaitForGPU();
+
 		Assert(DeferredRenderer::Get().Shutdown());
+		Assert(TextureManager::Get().Shutdown());
 		Assert(PipelineManager::Get().Shutdown());
 		Assert(StaticMeshManager::Get().Shutdown());
 		Assert(ShaderManager::Get().Shutdown());

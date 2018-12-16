@@ -116,6 +116,12 @@ VkExtent2D VulkanCore::GetExtend() const
 	return GetDevice()->GetSurfaceCapabilities().currentExtent;
 }
 
+void VulkanCore::WaitForGPU()
+{
+	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
+	vkDeviceWaitIdle(Device);
+}
+
 bool VulkanCore::CreateInstance()
 {
 	VkApplicationInfo AppInfo = {};

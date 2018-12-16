@@ -31,6 +31,7 @@ public:
 	inline SwapChain* GetSwapChain() const { return mSwapChain; }
 	inline int32_t GetImageIndex() const { return mCurrentImageIndex; }
 	VkExtent2D GetExtend() const;
+	void WaitForGPU();
 
 private:
 	bool mDebugMode = false;
