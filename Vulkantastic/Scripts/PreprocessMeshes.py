@@ -198,10 +198,12 @@ def PreprocessObj(fileName):
     DstFile.close()
             
 # Start
-Files = os.listdir(SrcPath)
+DirExists = os.path.isdir(SrcPath)
+if DirExists:
+    Files = os.listdir(SrcPath)
 
-for File in Files:
-    if File.endswith('.obj'):
-        PreprocessObj(File)
-    else:
-        print("Unsupported file extension: " + File)
+    for File in Files:
+        if File.endswith('.obj'):
+            PreprocessObj(File)
+        else:
+            print("Unsupported file extension: " + File)
