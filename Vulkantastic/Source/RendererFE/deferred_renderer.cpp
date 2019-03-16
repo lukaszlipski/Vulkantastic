@@ -130,21 +130,27 @@ void DeferredRenderer::Render(SceneData& Data)
 	struct RenderableData
 	{
 		StaticMesh* Mesh;
+		glm::mat4 Transform;
 		int32_t Id = -1;
 	};
 
 	std::map<PipelineManager::KeyType, std::vector<RenderableData>> PartitionedRendererData;
 
-	for (StaticMesh* Mesh : Data.StaticMeshes)
+	for (StaticMeshComponent* Mesh : Data.StaticMeshComponents)
 	{
-		for (int32_t i = 0; i < Mesh->GetMaterialsCount(); ++i)
+		auto CurrentMesh = Mesh->GetMesh();
+
+		if(!CurrentMesh) { continue;}
+
+		for (int32_t i = 0; i < CurrentMesh->GetMaterialsCount(); ++i)
 		{
-			const StaticSurfaceMaterial* Material = Mesh->GetMaterial(i);
+			const StaticSurfaceMaterial* Material = CurrentMesh->GetMaterial(i);
 			const PipelineManager::KeyType Key = Material->GetDescriptorInstance()->GetPipelineKey();
 			
 			RenderableData NewData = {};
 			NewData.Id = i;
-			NewData.Mesh = Mesh;
+			NewData.Mesh = CurrentMesh;
+			NewData.Transform = Mesh->GetTransform();
 
 			PartitionedRendererData[Key].emplace_back(std::move(NewData));
 		}
@@ -177,7 +183,7 @@ void DeferredRenderer::Render(SceneData& Data)
 			const glm::mat4 Correction = glm::mat4(glm::vec4(1, 0, 0, 0), glm::vec4(0, -1, 0, 0), glm::vec4(0, 0, 1.0f / 2.0f, 1.0f / 2.0f), glm::vec4(0, 0, 0, 1));
 
 			glm::mat4 Camera = glm::lookAt(Data.CameraPosition, Data.CameraPosition + Data.CameraForward, glm::vec3(0, 1, 0));
-			glm::mat4 MVP = Correction * Projection * Camera; // #TODO: Add world transform
+			glm::mat4 MVP = Correction * Projection * Camera * DataToRender.Transform; // #TODO: Add world transform
 
 			Mesh->GetMaterial(Id)->SetMVP(MVP);
 

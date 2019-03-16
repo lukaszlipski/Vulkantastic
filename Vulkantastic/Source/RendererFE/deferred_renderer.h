@@ -7,6 +7,7 @@
 #define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
+#include "static_mesh_component.h"
 
 class StaticMesh;
 
@@ -14,7 +15,7 @@ struct SceneData
 {
 	glm::vec3 CameraPosition = { 0.0f,0.0f,0.0f };
 	glm::vec3 CameraForward = { 0.0f, 0.0f, -1.0f };
-	std::vector<StaticMesh*> StaticMeshes;
+	std::vector<StaticMeshComponent*> StaticMeshComponents;
 };
 
 class DeferredRenderer

@@ -2,6 +2,7 @@
 #include "../File/file.h"
 #include "../Renderer/buffer.h"
 #include "../Utilities/assert.h"
+#include "surface_material.h"
 
 bool StaticMeshManager::Startup()
 {

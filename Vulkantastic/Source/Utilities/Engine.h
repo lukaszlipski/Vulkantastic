@@ -5,6 +5,7 @@
 #define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include "assert.h"
 #include "../File/File.h"
 #include "../Renderer/window.h"
@@ -28,6 +29,7 @@
 #include "../RendererFE/deferred_renderer.h"
 #include "../RendererFE/surface_material.h"
 #include "../RendererFE/texture_manager.h"
+#include "../RendererFE/static_mesh_component.h"
 
 
 namespace Engine
