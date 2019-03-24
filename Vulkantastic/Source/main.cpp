@@ -32,7 +32,7 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		DeferredRenderer::Get().Render(DataToRender);
 
-		Mesh->GetMaterial(0)->SetCustomColor(glm::vec3(0,0,1));
+		Mesh->GetMaterial(0)->SetCustomColor(glm::vec3(1,1,1));
 
 		VulkanCore::Get().ProgessImageIndex();
 	}

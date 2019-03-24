@@ -132,7 +132,7 @@ python ./Scripts/PreprocessMeshes.py</Command>
     <ClInclude Include="Source\File\file.h" />
     <ClInclude Include="Source\File\path.h" />
     <ClInclude Include="Source\RendererFE\deferred_renderer.h" />
-    <ClInclude Include="Source\RendererFE\renderer_commands.h" />
+    <ClInclude Include="Source\Renderer\renderer_commands.h" />
     <ClInclude Include="Source\RendererFE\static_mesh_component.h" />
     <ClInclude Include="Source\RendererFE\surface_material.h" />
     <ClInclude Include="Source\RendererFE\texture_manager.h" />
@@ -181,6 +181,7 @@ python ./Scripts/PreprocessMeshes.py</Command>
     <ClCompile Include="Source\Renderer\memory_manager.cpp" />
     <ClCompile Include="Source\Renderer\pipeline_manager.cpp" />
     <ClCompile Include="Source\Renderer\push_constant_buffer.cpp" />
+    <ClCompile Include="Source\Renderer\renderer_commands.cpp" />
     <ClCompile Include="Source\Renderer\synchronization.cpp" />
     <ClCompile Include="Source\Renderer\uniform_buffer.cpp" />
     <ClCompile Include="Source\Renderer\pipeline.cpp" />

@@ -14,4 +14,8 @@ END_VERTEX_FORMAT(StaticMesh)
 BEGIN_VERTEX_FORMAT(SimpleInstanced, true)
 VERTEX_MEMBER(SimpleInstanced, glm::vec3, Offset)
 END_VERTEX_FORMAT(SimpleInstanced)
+BEGIN_VERTEX_FORMAT(SimpleScreen, false)
+VERTEX_MEMBER(SimpleScreen, glm::vec2, Position)
+VERTEX_MEMBER(SimpleScreen, glm::vec2, TexCoord)
+END_VERTEX_FORMAT(SimpleScreen)
 }

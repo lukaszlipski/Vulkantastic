@@ -2,7 +2,6 @@
 #include "vulkan/vulkan_core.h"
 #include "image.h"
 
-
 struct ImageViewSettings
 {
 	uint32_t BaseMipMapLevel = 0;
@@ -38,4 +37,6 @@ private:
 	void CreateImageView(const VkImage& RawImage);
 
 };
+
+using upImageView = std::unique_ptr<ImageView>;
 

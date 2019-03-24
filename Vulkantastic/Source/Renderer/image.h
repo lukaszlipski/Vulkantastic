@@ -90,6 +90,8 @@ public:
 	static uint8_t GetNumComponentsByFormat(ImageFormat Format);
 	static int32_t GetSizeInBytesByFormat(ImageFormat Format);
 
+	static void ChangeMultipleLayouts(std::vector<Image*> Images, std::vector<ImageLayout> Layouts);
+
 private:
 	VkImage mImage = nullptr;
 	ImageLayout mCurrentLayout = ImageLayout::UNDEFINED;
@@ -103,3 +105,5 @@ private:
 	bool mGPUSide;
 
 };
+
+using upImage = std::unique_ptr<Image>;

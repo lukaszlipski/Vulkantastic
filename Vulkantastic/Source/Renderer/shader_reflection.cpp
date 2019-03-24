@@ -122,6 +122,11 @@ int32_t ShaderReflection::GetSizeForStructure(Uniform Structure)
 	int32_t Result = 0;
 	for (auto& Member : Structure.Members)
 	{
+		// Align to a Vulkan's boundary
+		const int32_t Alignment = 0xF;
+		Result += Alignment;
+		Result &= ~Alignment;
+
 		Result += GetSizeForFormat(Member.Format);
 	}
 

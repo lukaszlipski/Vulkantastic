@@ -23,6 +23,7 @@ public:
 	SurfaceMaterial(const std::string& VertexShader, const std::string& FragmentShader);
 
 	SurfaceMaterial& SetMVP(const glm::mat4x4& MVP);
+	SurfaceMaterial& SetMV(const glm::mat4x4& MV);
 	SurfaceMaterial& SetCustomColor(const glm::vec3& CustomColor); 
 	SurfaceMaterial& SetAlbedoTexture(ImageView* const AlbedoView, Sampler* const AlbedoSampler);
 
@@ -103,6 +104,17 @@ SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetMVP(const glm::mat4x4& MVP)
 
 	return *this;
 }
+
+
+template<typename ...T>
+SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetMV(const glm::mat4x4& MV)
+{
+	auto PCVertPtr = mDescriptorInstance->GetPushConstantBuffer(ShaderType::VERTEX);
+	PCVertPtr->Set("MV", MV);
+
+	return *this;
+}
+
 
 template<typename ...T>
 SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetCustomColor(const glm::vec3& CustomColor)

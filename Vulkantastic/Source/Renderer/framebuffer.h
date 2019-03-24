@@ -21,3 +21,5 @@ private:
 	VkFramebuffer mFramebuffer = nullptr;
 
 };
+
+using upFramebuffer = std::unique_ptr<Framebuffer>;

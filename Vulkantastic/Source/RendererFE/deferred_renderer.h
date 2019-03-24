@@ -10,6 +10,8 @@
 #include "static_mesh_component.h"
 
 class StaticMesh;
+class DescriptorInst;
+class Buffer;
 
 struct SceneData
 {
@@ -39,18 +41,49 @@ public:
 	void Render(SceneData& Data);
 
 private:
-	std::unique_ptr<CommandBuffer> mCommandBuffer;
 
-	std::vector<Semaphore> mImageReadyToDraw;
-	std::vector<Semaphore> mImageReadyToPresent;
-	Fence mFrameFence;
+	
 
-	std::vector<std::unique_ptr<ImageView>> mImageViews;
-	std::vector<std::unique_ptr<Framebuffer>> mFramebuffers;
+	std::vector<upSemaphore> mImageReadyToDraw;
+	std::vector<upSemaphore> mImageReadyToPresent;
+	upFence mFrameFence;
+
+	std::vector<upImageView> mImageViews;
+	std::vector<upFramebuffer> mFramebuffers;
 
 	// Base pass
+	std::unique_ptr<CommandBuffer> mBasePassCommandBuffer;
+	std::unique_ptr<Framebuffer> mBasePassFramebuffer;
 	std::unique_ptr<RenderPass> mBasePassRenderPass;
-	std::unique_ptr<Image> mDepthBuffer;
-	std::unique_ptr<ImageView> mDepthView;
+
+	upImage mDepthBuffer;
+	upImageView mDepthView;
+	upImage mColorBuffer;
+	upImageView mColorView;
+	upImage mNormalBuffer;
+	upImageView mNormalView;
+	upImage mPositionBuffer;
+	upImageView mPositionView;
+
+	upSemaphore mBasePassReady;
+
+	// Light pass
+	std::unique_ptr<CommandBuffer> mLightPassCommandBuffer;
+	std::unique_ptr<Framebuffer> mLightPassFramebuffer;
+	std::unique_ptr<RenderPass> mLightPassRenderPass;
+
+	std::unique_ptr<DescriptorInst> mDirectionalLightPassDescriporInst;
+
+	upImage mSceneBuffer;
+	upImageView mSceneView;
+
+	upSemaphore mLightPassReady;
+
+	// Screen
+	std::unique_ptr<CommandBuffer> mScreenCommandBuffer;
+	std::unique_ptr<RenderPass> mScreenRenderPass;
+	std::unique_ptr<DescriptorInst> mScreenDescriporInst;
+	std::unique_ptr<Buffer> mScreenVertexBuffer;
+
 
 };

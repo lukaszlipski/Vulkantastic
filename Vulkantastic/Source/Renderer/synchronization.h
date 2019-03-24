@@ -1,5 +1,6 @@
 #pragma once
 #include "vulkan/vulkan_core.h"
+#include <memory>
 
 class Semaphore
 {
@@ -44,3 +45,6 @@ private:
 	VkFence mFence = nullptr;
 
 };
+
+using upFence = std::unique_ptr<Fence>;
+using upSemaphore = std::unique_ptr<Semaphore>;

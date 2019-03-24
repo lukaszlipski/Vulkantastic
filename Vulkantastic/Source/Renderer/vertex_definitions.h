@@ -27,4 +27,11 @@ namespace VertexDefinition
 		glm::vec3 Offset;
 	};
 
+	struct SimpleScreen
+	{
+		DECLARE_VERTEX_FORMAT()
+		glm::vec2 Position;
+		glm::vec2 TexCoord;
+	};
+
 }

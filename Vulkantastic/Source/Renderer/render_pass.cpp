@@ -98,7 +98,7 @@ void RenderPass::CreateRenderPass(const std::vector<VkAttachmentDescription>& At
 
 	VkSubpassDescription SubpassDesc = {};
 	SubpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	SubpassDesc.colorAttachmentCount = 1;
+	SubpassDesc.colorAttachmentCount = static_cast<uint32_t>(AttachmentRefs.size());
 	SubpassDesc.pColorAttachments = AttachmentRefs.data();
 	SubpassDesc.pDepthStencilAttachment = DepthAttachmentRef;
 
