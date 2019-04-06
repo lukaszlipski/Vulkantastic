@@ -1,6 +1,4 @@
 #pragma once
-#include <memory>
-#include <vector>
 #include "../Renderer/synchronization.h"
 #include "../Renderer/framebuffer.h"
 #include "../Renderer/command_buffer.h"

@@ -1,6 +1,5 @@
 #include "core.h"
 #include "window.h"
-#include <vector>
 #include "device.h"
 #include "swap_chain.h"
 #include "../Utilities/assert.h"

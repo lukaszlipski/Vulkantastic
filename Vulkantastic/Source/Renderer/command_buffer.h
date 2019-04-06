@@ -1,6 +1,5 @@
 #pragma once
 #include "vulkan/vulkan_core.h"
-#include <vector>
 #include "pipeline_creation.h"
 #include "synchronization.h"
 

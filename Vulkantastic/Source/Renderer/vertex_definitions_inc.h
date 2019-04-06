@@ -1,6 +1,4 @@
 #pragma once
-#include <cstdint>
-#include <vector>
 
 #define DECLARE_VERTEX_FORMAT_INST() static VertexFormatDeclaration VertexFormatInfo;
 #define DECLARE_VERTEX_FORMAT() static VertexFormatDeclaration VertexFormatInfo;

@@ -1,7 +1,5 @@
 #pragma once
 #include "vulkan/vulkan_core.h"
-#include <initializer_list>
-#include <vector>
 #include "memory_manager.h"
 
 enum class BufferUsage : uint8_t

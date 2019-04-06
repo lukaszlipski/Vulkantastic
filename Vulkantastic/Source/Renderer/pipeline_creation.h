@@ -1,6 +1,5 @@
 #pragma once
 #include "core.h"
-#include <vector>
 #include "vertex_definitions_inc.h"
 
 class Shader;

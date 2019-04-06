@@ -1,7 +1,4 @@
 #pragma once
-#include <vector>
-#include <map>
-#include <list>
 #include "vulkan/vulkan_core.h"
 
 enum class ShaderType : uint8_t
