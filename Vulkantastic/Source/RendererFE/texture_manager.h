@@ -3,6 +3,7 @@
 #include "../Renderer/image.h"
 #include "../Renderer/image_view.h"
 #include "../Renderer/sampler.h"
+#include "dds_image.h"
 
 struct ImageProperties
 {
@@ -40,6 +41,9 @@ public:
 private:
 	TextureManager() = default;
 	
+	ImageFormat GetFormatByDDSFormat(DDSFormat Format) const;
+	ImageType GetTypeByDDSType(DDSType Type) const;
+
 	using ImageKey = std::tuple<std::string, ImageFormat, ImageType, bool>;
 	using ImagesList = std::map<ImageKey, std::unique_ptr<Image>>;
 	using ImageViewsList = std::map<Image*, std::unique_ptr<ImageView>>;

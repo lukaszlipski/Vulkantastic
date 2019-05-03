@@ -96,7 +96,8 @@
     <PreBuildEvent>
       <Command>python ./Scripts/CompileShaders.py &amp; 
 python ./Scripts/PreprocessVertexDefinitions.py &amp;
-python ./Scripts/PreprocessMeshes.py</Command>
+python ./Scripts/PreprocessMeshes.py &amp;
+python ./Scripts/PreprocessTextures.py</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -138,6 +139,7 @@ python ./Scripts/PreprocessMeshes.py</Command>
     <ClInclude Include="Source\File\file.h" />
     <ClInclude Include="Source\File\path.h" />
     <ClInclude Include="Source\RendererFE\deferred_renderer.h" />
+    <ClInclude Include="Source\RendererFE\dds_image.h" />
     <ClInclude Include="Source\Renderer\renderer_commands.h" />
     <ClInclude Include="Source\RendererFE\static_mesh_component.h" />
     <ClInclude Include="Source\RendererFE\surface_material.h" />
@@ -176,6 +178,7 @@ python ./Scripts/PreprocessMeshes.py</Command>
     <ClCompile Include="Source\RendererFE\deferred_renderer.cpp" />
     <ClCompile Include="Source\RendererFE\static_mesh.cpp" />
     <ClCompile Include="Source\RendererFE\static_mesh_component.cpp" />
+    <ClCompile Include="Source\RendererFE\dds_image.cpp" />
     <ClCompile Include="Source\RendererFE\texture_manager.cpp" />
     <ClCompile Include="Source\Renderer\buffer.cpp" />
     <ClCompile Include="Source\Renderer\command_buffer.cpp" />

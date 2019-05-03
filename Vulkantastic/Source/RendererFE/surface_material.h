@@ -85,7 +85,7 @@ SurfaceMaterial<T...>::SurfaceMaterial(const std::string& VertexShaderName, cons
 
 	mDescriptorInstance = PipelineManager::Get().GetDescriptorInstance<T...>(*Rp, Shaders);
 
-	ImageView* DefaultView = TextureManager::Get().GetImageView("test.tga");
+	ImageView* DefaultView = TextureManager::Get().GetImageView("test");
 
 	// Create sampler
 	SamplerSettings SamplerInstSettings = {};

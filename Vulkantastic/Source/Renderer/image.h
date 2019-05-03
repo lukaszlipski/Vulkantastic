@@ -22,7 +22,6 @@ inline ImageUsage operator&(ImageUsage Left, ImageUsage Right)
 	return static_cast<ImageUsage>(static_cast<uint8_t>(Left) & static_cast<uint8_t>(Right));
 }
 
-
 enum class ImageFormat : uint8_t
 {
 	R8 = VK_FORMAT_R8_UNORM,
@@ -32,7 +31,9 @@ enum class ImageFormat : uint8_t
 	R8G8B8A8 = VK_FORMAT_R8G8B8A8_UNORM,
 	R8G8B8A8_SRGB = VK_FORMAT_R8G8B8A8_SRGB,
 	B8G8R8A8 = VK_FORMAT_B8G8R8A8_UNORM,
-	D24S8 = VK_FORMAT_D24_UNORM_S8_UINT
+	D24S8 = VK_FORMAT_D24_UNORM_S8_UINT,
+	BC1 = VK_FORMAT_BC1_RGB_UNORM_BLOCK,
+	BC1_SRGB = VK_FORMAT_BC1_RGB_SRGB_BLOCK
 };
 
 enum class ImageType : uint8_t

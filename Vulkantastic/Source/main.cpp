@@ -1,5 +1,6 @@
 #include "Utilities/Engine.h"
 #include <array>
+#include "RendererFE/dds_image.h"
 
 int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {

@@ -1,4 +1,7 @@
+import Common
 import os
+
+Common.PrintHeader('Vertex definitions preprocessor')
 
 CurrentPath = os.path.dirname(__file__)
 
@@ -32,7 +35,11 @@ while(Line != ""):
 
         if Words[0] == "DECLARE_VERTEX_FORMAT_INST()":
             StartProcessing = True
-            DstFile.write("BEGIN_VERTEX_FORMAT(%s, %s)\n" % (CurrentStructName, "true"))
+            DstFile.write("BEGIN_VERTEX_FORMAT(%s, %s)\n" % (CurrentStructName, "true"))    
+
+        if StartProcessing:
+            Common.PrintLog('Processing: %s' % CurrentStructName)
+
     else:
         if Words[0] == "};":
             StartProcessing = False
@@ -55,3 +62,5 @@ DstFile.write("}\n")
 
 SrcFile.close()
 DstFile.close()
+
+Common.PrintFooter('Vertex definitions preprocessor')

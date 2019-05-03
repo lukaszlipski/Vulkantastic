@@ -1,11 +1,11 @@
+import Common
 import os
 import struct
 import math
 
-CurrentPath = os.path.dirname(os.path.abspath(__file__))
+SrcPath = Common.GetSourceFolderPath('Meshes')
+DstPath = Common.GetDestinationFolderPath('Meshes')
 
-SrcPath = os.path.normpath(os.path.join(CurrentPath, "../Source/Meshes/"))
-DstPath = os.path.normpath(os.path.join(CurrentPath, "../Meshes/"))
 
 def CalculateTangents(Positions, TexCoords, Indicies):
     
@@ -198,12 +198,17 @@ def PreprocessObj(fileName):
     DstFile.close()
             
 # Start
+Common.PrintHeader('Mesh preprocessor')
+
 DirExists = os.path.isdir(SrcPath)
 if DirExists:
     Files = os.listdir(SrcPath)
 
     for File in Files:
         if File.endswith('.obj'):
+            Common.PrintLog('Processing: %s' % File)
             PreprocessObj(File)
         else:
             print("Unsupported file extension: " + File)
+
+Common.PrintFooter('Mesh preprocessor')

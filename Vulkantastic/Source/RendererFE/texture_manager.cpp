@@ -1,5 +1,6 @@
 #include "texture_manager.h"
-#include "stb_image.h"
+#include "dds_image.h"
+#include "../Utilities/assert.h"
 
 bool TextureManager::Shutdown()
 {
@@ -25,20 +26,21 @@ Image* TextureManager::GetImage(const std::string& Name, const ImageProperties& 
 
 	const uint32_t GraphicsQueueIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
 
-	const std::string FilePath = "Textures/" + Name;
-	
-	int32_t Width, Height, Comp;
-	stbi_uc* Pixels = stbi_load(FilePath.c_str(), &Width, &Height, &Comp, STBI_rgb_alpha);
-	const int32_t ImageSize = Width * Height * STBI_rgb_alpha;
+	const std::string FilePath = "Textures/" + Name + ".dds";
+
+	DDSImage DDSFile(FilePath.c_str());
+	void* Pixels = reinterpret_cast<void*>(DDSFile.GetData());
+
+	const int32_t ImageSize = DDSFile.GetSize();
 
 	if (!Pixels) { return nullptr; }
 
 	ImageSettings Settings = {};
 	Settings.Depth = 1;
-	Settings.Height = Height;
-	Settings.Width = Width;
-	Settings.Format = Properties.Format;
-	Settings.Type = Properties.Type;
+	Settings.Height = DDSFile.GetHeight();
+	Settings.Width = DDSFile.GetWidth();
+	Settings.Format = GetFormatByDDSFormat(DDSFile.GetFormat());
+	Settings.Type = GetTypeByDDSType(DDSFile.GetType());
 	Settings.Mipmaps = Properties.GenerateMipMaps;
 
 	std::vector<uint32_t> Queues = { GraphicsQueueIndex };
@@ -92,4 +94,33 @@ Sampler* TextureManager::GetSampler(const SamplerSettings& Settings)
 	mSamplersList[Key] = std::move(NewSampler);
 
 	return mSamplersList[Key].get();
+}
+
+ImageFormat TextureManager::GetFormatByDDSFormat(DDSFormat Format) const
+{
+	switch (Format)
+	{
+	case DDSFormat::R8G8B8A8: return ImageFormat::R8G8B8A8;
+	case DDSFormat::R8G8B8A8_SRGB: return ImageFormat::R8G8B8A8_SRGB;
+	case DDSFormat::BC1: return ImageFormat::BC1;
+	case DDSFormat::BC1_SRGB: return ImageFormat::BC1_SRGB;
+	}
+
+	Assert(false); // Unsupported format
+
+	return ImageFormat::R8G8B8A8;
+}
+
+ImageType TextureManager::GetTypeByDDSType(DDSType Type) const
+{
+	switch (Type)
+	{
+	case DDSType::ONEDIM: return ImageType::ONEDIM;
+	case DDSType::TWODIM: return ImageType::TWODIM;
+	case DDSType::TREEDIM: return ImageType::TREEDIM;
+	}
+
+	Assert(false); // Unsupported format
+
+	return ImageType::TWODIM;
 }
