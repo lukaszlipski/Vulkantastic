@@ -4,12 +4,14 @@
 #include "buffer.h"
 #include "image_view.h"
 #include "sampler.h"
-#include <map>
+#include "uniform_buffer.h"
 
 enum class PipelineType : uint8_t;
+class DescriptorInst;
 
 class DescriptorManager
 {
+	friend DescriptorInst;
 public:
 	DescriptorManager(std::vector<Shader*> Shaders);
 	~DescriptorManager();
@@ -21,6 +23,7 @@ public:
 	DescriptorManager& operator=(DescriptorManager&& Rhs) noexcept;
 
 	std::unique_ptr<class DescriptorInst> GetDescriptorInstance();
+	std::unique_ptr<class ShaderParameters> GetShaderParametersInstance();
 
 	inline VkDescriptorSetLayout GetLayout() const { return mLayout; }
 	inline VkDescriptorPool GetPool() const { return mPool; }
@@ -46,9 +49,6 @@ class DescriptorInst
 {
 	friend DescriptorManager;
 
-	using UniformBuffersList = std::vector<std::unique_ptr<class UniformBuffer>>;
-	using PushConstantBuffersList = std::map<ShaderType, std::unique_ptr<class PushConstantBuffer>>;
-
 public:
 	~DescriptorInst();
 
@@ -59,30 +59,31 @@ public:
 	DescriptorInst& operator=(DescriptorInst&& Rhs) noexcept;
 
 	inline VkDescriptorSet GetSet() const { return mSet; }
-	inline std::string GetPipelineKey() const { return mPipelineKey; }
 
-	DescriptorInst* SetBuffer(const std::string& Name, const Buffer& BufferToSet);
-	DescriptorInst* SetImage(const std::string& Name, const ImageView& View, const Sampler& ImageSampler);
-
-	class UniformBuffer* GetUniformBuffer(const std::string& Name);
-	class PushConstantBuffer* GetPushConstantBuffer(ShaderType Type);
+	DescriptorInst* SetBuffer(int32_t Binding, const UniformBuffer* BufferToSet);
+	DescriptorInst* SetImage(int32_t Binding, const ImageView* View, const Sampler* ImageSampler);
 
 	void Update();
 
 private:
 	DescriptorInst(DescriptorManager* DescManager);
 
+	void AddBufferWriteDesc(const Uniform& Template);
+	void AddImageWriteDesc(const Uniform& Template);
+
 	VkDescriptorSet mSet = nullptr;
 
-	std::vector<VkWriteDescriptorSet> mWriteSets;
-	std::vector<VkDescriptorBufferInfo> mBuffersInfo;
-	std::vector<VkDescriptorImageInfo> mImagesInfo;
+	using BufferWriteDescList = std::vector< std::pair<VkWriteDescriptorSet, VkDescriptorBufferInfo> >;
+	using ImageWriteDescList = std::vector< std::pair<VkWriteDescriptorSet, VkDescriptorImageInfo> >;
+
+	BufferWriteDescList mBuffersInfo;
+	ImageWriteDescList mImagesInfo;
 
 	std::vector<Uniform> mUniforms;
-	std::map<ShaderType, std::vector<Uniform>> mPushConstants;
 
-	UniformBuffersList mUniformBuffers;
-	PushConstantBuffersList mPushConstantBuffers;
+	DescriptorManager* mOwner = nullptr;
 
-	std::string mPipelineKey; // PipelineManager::KeyType 
 };
+
+using upDescriptorInst = std::unique_ptr<DescriptorInst>;
+using upDescriptorInstList = std::vector<upDescriptorInst>;

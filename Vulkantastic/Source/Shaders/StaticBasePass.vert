@@ -20,10 +20,15 @@ layout(push_constant) uniform PushConstant
 	mat4 MV;
 };
 
+layout(binding=0) uniform UBO {
+    mat4 MVP2;
+	mat4 MV2;
+};
+
 void main()
 {
-	gl_Position  = MVP * vec4(Position, 1.0f);
+	gl_Position  = MVP2 * vec4(Position, 1.0f);
 	fTexCoord = TexCoord;
-	fNormal = mat3(transpose(inverse(MV))) * Normal;
-	fPosition = MV * vec4(Position, 1.0f);
+	fNormal = mat3(transpose(inverse(MV2))) * Normal;
+	fPosition = MV2 * vec4(Position, 1.0f);
 }

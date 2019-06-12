@@ -15,10 +15,12 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 	StaticMeshComponent MeshComp("test2");
 	MeshComp.SetPosition({ 1,0,0 });
 	MeshComp.SetRotation({1,0,0}, 45.0f);
+	MeshComp.GetMeshHandle()->GetMaterial(0)->SetCustomColor(glm::vec3(1, 1, 1));
 
 	StaticMeshComponent MeshComp2(MeshComp);
 	MeshComp2.SetPosition({ -1,0,0 });
 	MeshComp2.SetRotation({ 1,0,0 }, -45.0f);
+	MeshComp2.GetMeshHandle()->GetMaterial(0)->SetCustomColor(glm::vec3(1, 0, 1));
 
 	SceneData DataToRender;
 	DataToRender.CameraPosition = glm::vec3(3, 3, 3);
@@ -33,7 +35,9 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 		DeferredRenderer::Get().Render(DataToRender);
 
-		Mesh->GetMaterial(0)->SetCustomColor(glm::vec3(1,1,1));
+		//Mesh->GetMaterial(0)->SetCustomColor(glm::vec3(1,1,1));
+		
+
 
 		VulkanCore::Get().ProgessImageIndex();
 	}

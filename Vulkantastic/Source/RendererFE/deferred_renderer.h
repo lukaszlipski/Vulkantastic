@@ -6,6 +6,9 @@
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include "static_mesh_component.h"
+#include "../Renderer/pipeline_manager.h"
+#include "../Renderer/uniform_buffer.h"
+#include "../Renderer/shader_parameters.h"
 
 class StaticMesh;
 class DescriptorInst;
@@ -40,8 +43,6 @@ public:
 
 private:
 
-	
-
 	std::vector<upSemaphore> mImageReadyToDraw;
 	std::vector<upSemaphore> mImageReadyToPresent;
 	upFence mFrameFence;
@@ -65,12 +66,24 @@ private:
 
 	upSemaphore mBasePassReady;
 
+	// Materials
+	using UBTemplate = std::pair<uint32_t, upUniformBufferList>;
+	using UBTemplates = std::vector<UBTemplate>;
+	
+	std::map<PipelineManager::KeyType, UBTemplates> mMaterialUniformBuffers;
+	std::map<PipelineManager::KeyType, upDescriptorInstList> mDescriptorInstances;
+	int32_t mMaxElementsInUB = 32;
+
+	inline int32_t GetBufferIDByIndex(int32_t Index) { return Index / mMaxElementsInUB; }
+	inline int32_t GetEntryIDByIndex(int32_t Index) { return Index % mMaxElementsInUB; }
+
 	// Light pass
 	std::unique_ptr<CommandBuffer> mLightPassCommandBuffer;
 	std::unique_ptr<Framebuffer> mLightPassFramebuffer;
 	std::unique_ptr<RenderPass> mLightPassRenderPass;
 
-	std::unique_ptr<DescriptorInst> mDirectionalLightPassDescriporInst;
+	upShaderParameters mDirectionalLightPassShaderParams;
+	upDescriptorInst mDirectionalLightPassDescriporInst;
 
 	upImage mSceneBuffer;
 	upImageView mSceneView;
@@ -80,7 +93,10 @@ private:
 	// Screen
 	std::unique_ptr<CommandBuffer> mScreenCommandBuffer;
 	std::unique_ptr<RenderPass> mScreenRenderPass;
-	std::unique_ptr<DescriptorInst> mScreenDescriporInst;
+
+	upShaderParameters mScreenShaderParams;
+	upDescriptorInst mScreenDescriporInst;
+
 	std::unique_ptr<Buffer> mScreenVertexBuffer;
 
 

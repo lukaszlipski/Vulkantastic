@@ -75,14 +75,6 @@ StaticMesh::StaticMesh(const std::string& Name)
 
 	}
 
-	const int32_t SubMeshesCount = static_cast<int32_t>(mVertexBuffers.size());
-
-	mMaterials.reserve(SubMeshesCount);
-	for (int32_t i = 0; i < SubMeshesCount; ++i)
-	{
-		mMaterials.push_back(std::make_unique<StaticSurfaceMaterial>("StaticBasePass.vert", "StaticBasePass.frag"));
-	}
-
 }
 
 Buffer* StaticMesh::GetVertexBuffer(int32_t Index /*= 0*/) const
@@ -103,25 +95,41 @@ uint32_t StaticMesh::GetIndiciesSize(int32_t Index /*= 0*/) const
 	return static_cast<uint32_t>(mIndicies[Index].size());
 }
 
-StaticMesh& StaticMesh::SetMaterial(int32_t Id, std::unique_ptr<StaticSurfaceMaterial> Material)
-{
-	const int32_t SubMeshesCount = static_cast<int32_t>(mVertexBuffers.size());
-	if (Id < 0 || Id >= SubMeshesCount) { return *this; }
-
-	mMaterials[Id] = std::move(Material);
-
-	return *this;
-}
-
-StaticSurfaceMaterial* StaticMesh::GetMaterial(int32_t Id)
-{
-	const int32_t SubMeshesCount = static_cast<int32_t>(mVertexBuffers.size());
-	if (Id < 0 || Id >= SubMeshesCount) { return nullptr; }
-
-	return mMaterials[Id].get();
-}
 
 StaticMesh::~StaticMesh()
 
 {
+}
+
+StaticMeshHandle::StaticMeshHandle(const std::string& Name)
+	: mName(Name)
+{
+	mStaticMesh = StaticMeshManager::Get().Find(mName);
+	Assert(mStaticMesh);
+
+	const int32_t SubMeshesCount = mStaticMesh->GetVertexBufferCount();
+
+	mMaterials.reserve(SubMeshesCount);
+	for (int32_t i = 0; i < SubMeshesCount; ++i)
+	{
+		mMaterials.emplace_back("StaticBasePass.vert", "StaticBasePass.frag");
+	}
+}
+
+StaticMeshHandle& StaticMeshHandle::SetMaterial(int32_t Id, const StaticSurfaceMaterial& Material)
+{
+	const int32_t SubMeshesCount = mStaticMesh->GetVertexBufferCount();
+	if (Id < 0 || Id >= SubMeshesCount) { return *this; }
+
+	mMaterials[Id] = Material;
+
+	return *this;
+}
+
+StaticSurfaceMaterial* StaticMeshHandle::GetMaterial(int32_t Id)
+{
+	const int32_t SubMeshesCount = mStaticMesh->GetVertexBufferCount();
+	if (Id < 0 || Id >= SubMeshesCount) { return nullptr; }
+
+	return &mMaterials[Id];
 }

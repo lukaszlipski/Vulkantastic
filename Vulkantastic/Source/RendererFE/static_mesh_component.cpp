@@ -10,14 +10,22 @@ StaticMeshComponent::StaticMeshComponent(const std::string& Name)
 }
 
 StaticMeshComponent::StaticMeshComponent(const StaticMeshComponent& Mesh)
-	: mMesh(Mesh.mMesh)
+{
+	mMesh = std::make_unique<StaticMeshHandle>(Mesh.mMesh->GetStaticMeshName());
+
+	mPosition = Mesh.mPosition;
+	mRotation = Mesh.mRotation;
+	mScale = Mesh.mScale;
+}
+
+StaticMeshComponent::~StaticMeshComponent()
 {
 
 }
 
 void StaticMeshComponent::SetMesh(const std::string& Name)
 {
-	mMesh = StaticMeshManager::Get().Find(Name);
+	mMesh = std::make_unique<StaticMeshHandle>(Name);
 }
 
 

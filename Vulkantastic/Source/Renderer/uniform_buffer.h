@@ -6,7 +6,7 @@
 class UniformBuffer
 {
 public:
-	UniformBuffer(const Uniform& UniformData, const std::vector<uint32_t>& QueueIndicies);
+	UniformBuffer(const Uniform& UniformData, const std::vector<uint32_t>& QueueIndicies, int32_t MaxSize = 1);
 	~UniformBuffer();
 
 	UniformBuffer(const UniformBuffer& Rhs) = delete;
@@ -19,32 +19,18 @@ public:
 	class Buffer* GetBuffer() const;
 	std::string GetName() const;
 
-	template<typename T>
-	bool Set(const std::string& Name, T Param);
+	inline int32_t GetAlignmentSize() const { return mAlignmentSize; }
+
+	bool Set(const class UniformRawData* UniformData, int32_t Index = 0);
 
 private:
-	Uniform mUniformData;
+	Uniform mUniformDataType;
 	std::unique_ptr<class Buffer> mBuffer = nullptr;
 	uint8_t* mCPUData = nullptr;
 	int32_t mAllocationSize = 0;
+	int32_t mMaxSize = 0;
+	int32_t mAlignmentSize = 0;
 };
 
-template<typename T>
-bool UniformBuffer::Set(const std::string& Name, T Param)
-{
-	for (const auto& Member : mUniformData.Members)
-	{
-		if (Member.Name == Name)
-		{
-			const auto Offset = Member.Offset;
-			const auto Size = ShaderReflection::GetSizeForFormat(Member.Format);
-
-			Assert(Size == sizeof(Param));
-
-			memcpy(reinterpret_cast<void*>(&mCPUData[Offset]), &Param, Size);
-
-			return true;
-		}
-	}
-	return false;
-}
+using upUniformBuffer = std::unique_ptr<UniformBuffer>;
+using upUniformBufferList = std::vector<upUniformBuffer>;

@@ -24,6 +24,7 @@ Device::Device()
 		{
 			CreateDevice(PhysicalDevice);
 			GetCapabilities(PhysicalDevice);
+			GetProperties(PhysicalDevice);
 			GetQueues();
 			break;
 		}
@@ -67,6 +68,15 @@ void Device::GetCapabilities(const VkPhysicalDevice& Device)
 	mPresentModes.clear();
 	mPresentModes.resize(PresentModesCount);
 	vkGetPhysicalDeviceSurfacePresentModesKHR(Device, VulkanSurface, &PresentModesCount, mPresentModes.data());
+}
+
+void Device::GetProperties(const VkPhysicalDevice& Device)
+{
+	VkPhysicalDeviceProperties Properties;
+
+	vkGetPhysicalDeviceProperties(Device, &Properties);
+
+	mLimits = Properties.limits;
 }
 
 void Device::GetQueues()

@@ -4,8 +4,8 @@
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <string>
 
+class StaticMeshHandle;
 class StaticMesh;
 
 class StaticMeshComponent
@@ -16,10 +16,10 @@ public:
 	StaticMeshComponent(const std::string& Name);
 	StaticMeshComponent(const StaticMeshComponent& Mesh);
 
-	// Default copy/move/destructor
+	~StaticMeshComponent();
 
 	void SetMesh(const std::string& Name);
-	inline StaticMesh* GetMesh() const { return mMesh; }
+	inline StaticMeshHandle* GetMeshHandle() const { return mMesh.get(); }
 
 	glm::mat4 GetTransform();
 
@@ -37,6 +37,6 @@ private:
 	glm::quat mRotation = {};
 	glm::vec3 mScale = { 1,1,1 };
 
-	StaticMesh* mMesh = nullptr;
+	std::unique_ptr<StaticMeshHandle> mMesh;
 
 };

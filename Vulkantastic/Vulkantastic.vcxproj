@@ -155,7 +155,7 @@ python ./Scripts/PreprocessTextures.py</Command>
     <ClInclude Include="Source\Renderer\image.h" />
     <ClInclude Include="Source\Renderer\image_view.h" />
     <ClInclude Include="Source\Renderer\memory_manager.h" />
-    <ClInclude Include="Source\Renderer\push_constant_buffer.h" />
+    <ClInclude Include="Source\Renderer\shader_parameters.h" />
     <ClInclude Include="Source\Renderer\synchronization.h" />
     <ClInclude Include="Source\Renderer\uniform_buffer.h" />
     <ClInclude Include="Source\Renderer\pipeline.h" />
@@ -165,6 +165,7 @@ python ./Scripts/PreprocessTextures.py</Command>
     <ClInclude Include="Source\Renderer\pipeline_creation.h" />
     <ClInclude Include="Source\Renderer\shader_reflection.h" />
     <ClInclude Include="Source\Renderer\swap_chain.h" />
+    <ClInclude Include="Source\Renderer\uniform_raw_data.h" />
     <ClInclude Include="Source\Renderer\vertex_definitions.h" />
     <ClInclude Include="Source\Renderer\vertex_definitions_inc.h" />
     <ClInclude Include="Source\Renderer\window.h" />
@@ -190,8 +191,8 @@ python ./Scripts/PreprocessTextures.py</Command>
     <ClCompile Include="Source\Renderer\image_view.cpp" />
     <ClCompile Include="Source\Renderer\memory_manager.cpp" />
     <ClCompile Include="Source\Renderer\pipeline_manager.cpp" />
-    <ClCompile Include="Source\Renderer\push_constant_buffer.cpp" />
     <ClCompile Include="Source\Renderer\renderer_commands.cpp" />
+    <ClCompile Include="Source\Renderer\shader_parameters.cpp" />
     <ClCompile Include="Source\Renderer\synchronization.cpp" />
     <ClCompile Include="Source\Renderer\uniform_buffer.cpp" />
     <ClCompile Include="Source\Renderer\pipeline.cpp" />
@@ -201,6 +202,7 @@ python ./Scripts/PreprocessTextures.py</Command>
     <ClCompile Include="Source\Renderer\shader.cpp" />
     <ClCompile Include="Source\Renderer\shader_reflection.cpp" />
     <ClCompile Include="Source\Renderer\swap_chain.cpp" />
+    <ClCompile Include="Source\Renderer\uniform_raw_data.cpp" />
     <ClCompile Include="Source\Renderer\vertex_definitions.cpp" />
     <ClCompile Include="Source\Renderer\window.cpp" />
     <ClCompile Include="Source\stdafx.cpp">

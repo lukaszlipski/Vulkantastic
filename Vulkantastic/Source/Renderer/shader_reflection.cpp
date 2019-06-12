@@ -84,7 +84,7 @@ VkDescriptorType ShaderReflection::InternalUniformTypeToVulkan(VariableType Type
 	case VariableType::BUFFER:
 		return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	case VariableType::STRUCTURE:
-		return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	case VariableType::SAMPLER:
 		return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	}

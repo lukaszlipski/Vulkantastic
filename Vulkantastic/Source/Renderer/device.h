@@ -27,6 +27,7 @@ public:
 	inline std::vector<VkPresentModeKHR> GetPresentModes() const { return mPresentModes; }
 	inline VkSurfaceCapabilitiesKHR GetSurfaceCapabilities() const { return mSurfaceCapabilities; }
 	inline VkPhysicalDeviceMemoryProperties GetMemoryProperties() const { return mMemoryProperties; }
+	inline VkPhysicalDeviceLimits GetLimits() const { return mLimits; }
 	inline QueueResult GetQueuesIndicies() const { return mQueuesIndicies; }
 	inline VkQueue GetGraphicsQueue() const { return mGraphicsQueue; }
 	inline VkQueue GetComputeQueue() const { return mComputeQueue; }
@@ -41,9 +42,11 @@ private:
 	std::vector<VkPresentModeKHR> mPresentModes;
 	VkSurfaceCapabilitiesKHR mSurfaceCapabilities;
 	VkPhysicalDeviceMemoryProperties mMemoryProperties;
+	VkPhysicalDeviceLimits mLimits;
 
 	void GetQueues();
 	void GetCapabilities(const VkPhysicalDevice& Device);
+	void GetProperties(const VkPhysicalDevice& Device);
 	bool CreateDevice(const VkPhysicalDevice& Device);
 	bool FindDevice(const VkPhysicalDevice& Device);
 	QueueResult FindQueueFamilies(const VkPhysicalDevice& Device);

@@ -5,7 +5,6 @@
 #include "../Renderer/render_pass.h"
 #include "../Renderer/core.h"
 #include "../Renderer/swap_chain.h"
-#include "../Renderer/pipeline_manager.h"
 #include "../Renderer/vertex_definitions.h"
 #include "../Renderer/descriptor_manager.h"
 #include "../Renderer/buffer.h"
@@ -138,12 +137,16 @@ bool DeferredRenderer::Startup()
 
 	// Light pass' descriptors
 	{
+		std::vector<uint32_t> Queues = { GraphicsQueueIndex };
+
 		Shader* VertexShader = ShaderManager::Get().Find("LightPass.vert");
 		Shader* FragmentShader = ShaderManager::Get().Find("DirectionalLightPass.frag");
 
 		Assert(VertexShader && FragmentShader);
 
 		PipelineShaders Shaders{ VertexShader, FragmentShader };
+
+		mDirectionalLightPassShaderParams = PipelineManager::Get().GetShaderParametersInstance<VertexDefinition::SimpleScreen>(*mLightPassRenderPass, Shaders);
 
 		mDirectionalLightPassDescriporInst = PipelineManager::Get().GetDescriptorInstance<VertexDefinition::SimpleScreen>(*mLightPassRenderPass, Shaders);
 
@@ -193,6 +196,7 @@ bool DeferredRenderer::Startup()
 
 		PipelineShaders Shaders{ VertexShader, FragmentShader };
 		
+		mScreenShaderParams = PipelineManager::Get().GetShaderParametersInstance<VertexDefinition::SimpleScreen>(*mScreenRenderPass, Shaders);
 		mScreenDescriporInst = PipelineManager::Get().GetDescriptorInstance<VertexDefinition::SimpleScreen>(*mScreenRenderPass, Shaders);
 
 		std::vector<uint32_t> QueueIndicies = { GraphicsQueueIndex };
@@ -215,6 +219,9 @@ bool DeferredRenderer::Startup()
 
 bool DeferredRenderer::Shutdown()
 {
+	mMaterialUniformBuffers.clear();
+	mDescriptorInstances.clear();
+
 	mBasePassCommandBuffer.reset();
 	mLightPassCommandBuffer.reset();
 	mScreenCommandBuffer.reset();
@@ -337,37 +344,167 @@ void DeferredRenderer::Render(SceneData& Data)
 
 	struct RenderableData
 	{
-		StaticMesh* Mesh;
+		StaticMeshHandle* MeshHandle;
 		glm::mat4 Transform;
 		int32_t Id = -1;
 	};
 
-	std::map<PipelineManager::KeyType, std::vector<RenderableData>> PartitionedRendererData;
+	using RenderableDataList = std::vector<RenderableData>;
 
+	std::map<PipelineManager::KeyType, RenderableDataList> PartitionedRendererData;
+
+	// Sort meshes based on materials that they use
 	for (StaticMeshComponent* Mesh : Data.StaticMeshComponents)
 	{
-		auto CurrentMesh = Mesh->GetMesh();
+		auto CurrentMeshHandle = Mesh->GetMeshHandle();
 
-		if(!CurrentMesh) { continue;}
+		if(!CurrentMeshHandle) { continue;}
 
-		for (int32_t i = 0; i < CurrentMesh->GetMaterialsCount(); ++i)
+		for (int32_t i = 0; i < CurrentMeshHandle->GetMaterialsCount(); ++i)
 		{
-			const StaticSurfaceMaterial* Material = CurrentMesh->GetMaterial(i);
-			const PipelineManager::KeyType Key = Material->GetDescriptorInstance()->GetPipelineKey();
+			const StaticSurfaceMaterial* Material = CurrentMeshHandle->GetMaterial(i);
+			const PipelineManager::KeyType Key = Material->GetShaderParameters()->GetPipelineKey();
 			
 			RenderableData NewData = {};
 			NewData.Id = i;
-			NewData.Mesh = CurrentMesh;
+			NewData.MeshHandle = CurrentMeshHandle;
 			NewData.Transform = Mesh->GetTransform();
 
 			PartitionedRendererData[Key].emplace_back(std::move(NewData));
 		}
 	}
 
+	// Update mvp
+	for (auto& PartitionedData : PartitionedRendererData)
+	{
+		const PipelineManager::KeyType PipelineKey = PartitionedData.first;
+		std::vector<RenderableData>& RenderableDataList = PartitionedData.second;
+
+		for (RenderableData& DataToRender : RenderableDataList)
+		{
+			StaticMeshHandle* const MeshHandle = DataToRender.MeshHandle;
+			const int32_t Id = DataToRender.Id;
+			ShaderParameters* Params = MeshHandle->GetMaterial(Id)->GetShaderParameters();
+
+			const float Aspect = Extend.width / float(Extend.height);
+			const glm::mat4 Projection = glm::perspective(3.14f / 4.0f, Aspect, 1.0f, 100.0f);
+			const glm::mat4 Correction = glm::mat4(glm::vec4(1, 0, 0, 0), glm::vec4(0, -1, 0, 0), glm::vec4(0, 0, 1.0f / 2.0f, 1.0f / 2.0f), glm::vec4(0, 0, 0, 1));
+
+			glm::mat4 Camera = glm::lookAt(Data.CameraPosition, Data.CameraPosition + Data.CameraForward, glm::vec3(0, 1, 0));
+			glm::mat4 MV = Camera * DataToRender.Transform;
+			glm::mat4 MVP = Correction * Projection * MV;
+
+			MeshHandle->GetMaterial(Id)->SetMVP(MVP);
+			MeshHandle->GetMaterial(Id)->SetMV(MV);
+		}
+	}
+
+
+	// Create uniform buffers that will hold renderable's data
+
+	mMaterialUniformBuffers.clear(); // #TODO: Maybe there should be considered keeping uniform buffers for pipelines that are going to be used
+	mDescriptorInstances.clear(); // #TODO: Same as with uniform buffers
+
+	for (const auto& RendererData : PartitionedRendererData)
+	{
+		const PipelineManager::KeyType& Key = RendererData.first;
+		const RenderableDataList& DataList = RendererData.second;
+
+		UBTemplates& ubList = mMaterialUniformBuffers[Key];
+
+		const int32_t Elements = static_cast<int32_t>(DataList.size());
+		const int32_t NeededNum = (Elements / mMaxElementsInUB) + 1;
+
+		DescriptorManager* DescManager = PipelineManager::Get().GetPipelineByKey(Key)->GetDescriptorManager();
+		
+		auto Uniforms = DescManager->GetUniforms();
+
+		// Create dynamic uniform buffers that are needed by materials
+		for (const Uniform& Template : Uniforms)
+		{
+			if (Template.Format == VariableType::STRUCTURE) // Uniform buffer
+			{
+				uint32_t QueueIndex = VulkanCore::Get().GetDevice()->GetQueuesIndicies().GraphicsIndex;
+				std::vector<uint32_t> QueueIndicies = { QueueIndex };
+
+				upUniformBufferList NewList(NeededNum);
+				for (auto& Elem : NewList)
+				{
+					Elem = std::make_unique<UniformBuffer>(Template, QueueIndicies, mMaxElementsInUB);
+				}
+
+				ubList.emplace_back(Template.Binding, std::move(NewList));
+			}
+		}
+
+		// Update uniform buffers
+		for (int32_t i = 0; i < DataList.size(); ++i)
+		{
+			const RenderableData& Renderable = DataList[i];
+			ShaderParameters* const Params = Renderable.MeshHandle->GetMaterial(Renderable.Id)->GetShaderParameters();
+
+			const int32_t BufferID = GetBufferIDByIndex(i);
+			const int32_t EntryID = GetEntryIDByIndex(i);
+
+			for (auto& Template : ubList)
+			{
+				uint32_t Binding = Template.first;
+				auto& Buffers = Template.second;
+
+				UniformRawData* UB = Params->GetUniformBufferByBinding(Binding);
+
+				Assert(UB);
+
+				Buffers[BufferID]->Set(UB, i);
+
+			}	
+		}
+
+		// Upload data to uniform buffers
+		for (auto& UniformBuffersForOneBinding : ubList)
+		{
+			auto& Buffers = UniformBuffersForOneBinding.second;
+			
+			for (auto& Buffer : Buffers)
+			{
+				Buffer->Update();
+			}
+		}
+
+		// Create descriptor instances
+		upDescriptorInstList& dsList = mDescriptorInstances[Key];
+
+		for (int32_t i = 0; i < NeededNum; ++i)
+		{
+			upDescriptorInst NewDS = DescManager->GetDescriptorInstance();
+
+			dsList.push_back(std::move(NewDS));
+		}
+
+		// Update descriptor instances
+		for (int32_t i = 0; i < dsList.size(); ++i)
+		{
+			upDescriptorInst& DS = dsList[i];
+
+			for (const UBTemplate& Template : ubList)
+			{
+				DS->SetBuffer(Template.first, Template.second[i].get());
+			}
+		}
+
+		for (auto& DS : dsList)
+		{
+			DS->Update();
+		}
+
+	}
+
+
 
 
 	Image::ChangeMultipleLayouts(	{ mColorBuffer.get(),				mNormalBuffer.get(),			mPositionBuffer.get() }, 
 									{ ImageLayout::COLOR_ATTACHMENT,	ImageLayout::COLOR_ATTACHMENT,	ImageLayout::COLOR_ATTACHMENT });
+
 
 
 	// Base pass
@@ -385,29 +522,39 @@ void DeferredRenderer::Render(SceneData& Data)
 
 		IGraphicsPipeline* Pipeline = PipelineManager::Get().GetPipelineByKey(PipelineKey);
 
+		upDescriptorInstList& DSList = mDescriptorInstances[PipelineKey];
+		UBTemplates& UBList = mMaterialUniformBuffers[PipelineKey];
+
 		Cmd::BindGraphicsPipeline(mBasePassCommandBuffer.get(), Pipeline);
 
-		for (RenderableData& DataToRender : RenderableDataList)
+		for (int32_t i = 0; i < RenderableDataList.size(); ++i)
 		{
-			StaticMesh* const Mesh = DataToRender.Mesh;
+
+			RenderableData& DataToRender = RenderableDataList[i];
+			StaticMeshHandle* const MeshHandle = DataToRender.MeshHandle;
+			const StaticMesh* const Mesh = MeshHandle->GetStaticMesh();
 			const int32_t Id = DataToRender.Id;
-			DescriptorInst* DescInst = Mesh->GetMaterial(Id)->GetDescriptorInstance();
+			ShaderParameters* Params = MeshHandle->GetMaterial(Id)->GetShaderParameters();
 
-			const float Aspect = Extend.width / float(Extend.height);
-			const glm::mat4 Projection = glm::perspective(3.14f / 4.0f, Aspect, 1.0f, 100.0f);
-			const glm::mat4 Correction = glm::mat4(glm::vec4(1, 0, 0, 0), glm::vec4(0, -1, 0, 0), glm::vec4(0, 0, 1.0f / 2.0f, 1.0f / 2.0f), glm::vec4(0, 0, 0, 1));
+			const int32_t BufferID = GetBufferIDByIndex(i);
+			const int32_t EntryID = GetEntryIDByIndex(i);
 
-			glm::mat4 Camera = glm::lookAt(Data.CameraPosition, Data.CameraPosition + Data.CameraForward, glm::vec3(0, 1, 0));
-			glm::mat4 MV = Camera * DataToRender.Transform;
-			glm::mat4 MVP = Correction * Projection * MV;
+			// Calculate a dynamic offset for each dynamic uniform buffer in a descriptor set
+			std::vector<uint32_t> DynamicOffsets;
+			DynamicOffsets.reserve(UBList.size());
+			for (int32_t j = 0; j < UBList.size(); ++j)
+			{
+				const auto& FirstBuffer = UBList[j].second[0];
+				const int32_t dynamicOffset = i * FirstBuffer->GetAlignmentSize();
 
-			Mesh->GetMaterial(Id)->SetMVP(MVP);
-			Mesh->GetMaterial(Id)->SetMV(MV);
+				DynamicOffsets.push_back(dynamicOffset);
+			}
 
-			Mesh->GetMaterial(Id)->Update();
+			upDescriptorInst& CurrentDS = DSList[BufferID];
+
+			Cmd::UpdateDescriptorData(mBasePassCommandBuffer.get(), Params, CurrentDS.get(), Pipeline, DynamicOffsets);
 
 			Cmd::BindVertexAndIndexBuffer(mBasePassCommandBuffer.get(), Mesh->GetVertexBuffer(Id), Mesh->GetIndexBuffer(Id));
-			Cmd::UpdateDescriptorData(mBasePassCommandBuffer.get(), DescInst, Pipeline);
 			Cmd::SetViewports(mBasePassCommandBuffer.get(), Pipeline);
 			Cmd::DrawIndexed(mBasePassCommandBuffer.get(), Mesh->GetIndiciesSize(Id));
 
@@ -422,9 +569,9 @@ void DeferredRenderer::Render(SceneData& Data)
 
 
 
-		
 	Image::ChangeMultipleLayouts(	{ mColorBuffer.get(),		mNormalBuffer.get(),		mPositionBuffer.get(),		mSceneBuffer.get() },
 									{ ImageLayout::SHADER_READ,	ImageLayout::SHADER_READ,	ImageLayout::SHADER_READ,	ImageLayout::COLOR_ATTACHMENT });
+
 
 
 	// Light pass
@@ -435,26 +582,26 @@ void DeferredRenderer::Render(SceneData& Data)
 		const std::vector<VkClearValue> SceneClearColor = { { 0, 0, 0, 1 } };
 		Cmd::BeginRenderPass(mLightPassCommandBuffer.get(), mLightPassFramebuffer.get(), mLightPassRenderPass.get(), SceneClearColor, Extend);
 
-		IGraphicsPipeline* Pipeline = PipelineManager::Get().GetPipelineByKey(mDirectionalLightPassDescriporInst->GetPipelineKey());
+		IGraphicsPipeline* Pipeline = PipelineManager::Get().GetPipelineByKey(mDirectionalLightPassShaderParams->GetPipelineKey());
 
 		SamplerSettings SamplerInstSettings = {};
 		SamplerInstSettings.MaxAnisotropy = 16;
 
 		Sampler* DefaultSampler = TextureManager::Get().GetSampler(SamplerInstSettings);
 
-		mDirectionalLightPassDescriporInst->SetImage("ColorTex", *mColorView, *DefaultSampler);
-		mDirectionalLightPassDescriporInst->SetImage("NormalTex", *mNormalView, *DefaultSampler);
-		mDirectionalLightPassDescriporInst->SetImage("PositionTex", *mPositionView, *DefaultSampler);
+		mDirectionalLightPassDescriporInst->SetImage(0, mColorView.get(), DefaultSampler);
+		mDirectionalLightPassDescriporInst->SetImage(1, mNormalView.get(), DefaultSampler);
+		mDirectionalLightPassDescriporInst->SetImage(2, mPositionView.get(), DefaultSampler);
 		mDirectionalLightPassDescriporInst->Update();
 
-		auto PCFragPtr = mDirectionalLightPassDescriporInst->GetPushConstantBuffer(ShaderType::FRAGMENT);
+		auto PCFragPtr = mDirectionalLightPassShaderParams->GetPushConstantBuffer(ShaderType::FRAGMENT);
 		PCFragPtr->Set("Direction", glm::normalize(glm::vec3(-1, -1, -1)));
 		PCFragPtr->Set("LightColor", glm::vec3(0,1,1));
 		
-		Cmd::BindGraphicsPipeline(mLightPassCommandBuffer.get(), Pipeline);
+		Cmd::UpdateDescriptorData(mLightPassCommandBuffer.get(), mDirectionalLightPassShaderParams.get(), mDirectionalLightPassDescriporInst.get(), Pipeline);
 
+		Cmd::BindGraphicsPipeline(mLightPassCommandBuffer.get(), Pipeline);
 		Cmd::BindVertexBuffer(mLightPassCommandBuffer.get(), mScreenVertexBuffer.get());
-		Cmd::UpdateDescriptorData(mLightPassCommandBuffer.get(), mDirectionalLightPassDescriporInst.get(), Pipeline);
 		Cmd::SetViewports(mLightPassCommandBuffer.get(), Pipeline);
 		Cmd::Draw(mLightPassCommandBuffer.get(), 6);
 
@@ -480,20 +627,22 @@ void DeferredRenderer::Render(SceneData& Data)
 		const std::vector<VkClearValue> ClearColor = { { 0, 0, 0, 1 } };
 		Cmd::BeginRenderPass(mScreenCommandBuffer.get(), mFramebuffers[CurrentImageIndex].get(), mScreenRenderPass.get(), ClearColor, Extend);
 
-		IGraphicsPipeline* Pipeline = PipelineManager::Get().GetPipelineByKey(mScreenDescriporInst->GetPipelineKey());
+		IGraphicsPipeline* Pipeline = PipelineManager::Get().GetPipelineByKey(mScreenShaderParams->GetPipelineKey());
 
 		SamplerSettings SamplerInstSettings = {};
 		SamplerInstSettings.MaxAnisotropy = 16;
 
 		Sampler* DefaultSampler = TextureManager::Get().GetSampler(SamplerInstSettings);
 	
-		mScreenDescriporInst->SetImage("SceneTex", *mSceneView, *DefaultSampler);
+		mScreenDescriporInst->SetImage(0, mSceneView.get(), DefaultSampler);
 		mScreenDescriporInst->Update();
 
 		Cmd::BindGraphicsPipeline(mScreenCommandBuffer.get(), Pipeline);
 
 		Cmd::BindVertexBuffer(mScreenCommandBuffer.get(), mScreenVertexBuffer.get());
-		Cmd::UpdateDescriptorData(mScreenCommandBuffer.get(), mScreenDescriporInst.get(), Pipeline);
+		
+		Cmd::UpdateDescriptorData(mScreenCommandBuffer.get(), mScreenShaderParams.get(), mScreenDescriporInst.get(), Pipeline);
+
 		Cmd::SetViewports(mScreenCommandBuffer.get(), Pipeline);
 		Cmd::Draw(mScreenCommandBuffer.get(), 6);
 

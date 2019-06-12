@@ -9,7 +9,7 @@ layout(location=0) in vec2 fTexCoord;
 layout(location=1) in vec3 fNormal;
 layout(location=2) in vec4 fPosition;
 
-layout(binding=0) uniform sampler2D Albedo;
+//layout(binding=1) uniform sampler2D Albedo;
 
 layout(push_constant) uniform PushConstant2
 {
@@ -18,7 +18,8 @@ layout(push_constant) uniform PushConstant2
 
 void main()
 {
-    Color = vec4(CustomColor * texture(Albedo,fTexCoord).rgb, 1.0f);
+    //Color = vec4(CustomColor * texture(Albedo,fTexCoord).rgb, 1.0f);
+    Color = vec4(CustomColor, 1.0f);
     Normal = vec4(fNormal,1.0f);
     Position = fPosition;
 }
