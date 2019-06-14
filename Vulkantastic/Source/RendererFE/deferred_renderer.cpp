@@ -402,6 +402,8 @@ void DeferredRenderer::Render(SceneData& Data)
 
 	// Create uniform buffers that will hold renderable's data
 
+	const uint32_t UniformSetIndex = 1;
+
 	mMaterialUniformBuffers.clear(); // #TODO: Maybe there should be considered keeping uniform buffers for pipelines that are going to be used
 	mDescriptorInstances.clear(); // #TODO: Same as with uniform buffers
 
@@ -416,8 +418,8 @@ void DeferredRenderer::Render(SceneData& Data)
 		const int32_t NeededNum = (Elements / mMaxElementsInUB) + 1;
 
 		DescriptorManager* DescManager = PipelineManager::Get().GetPipelineByKey(Key)->GetDescriptorManager();
-		
-		auto Uniforms = DescManager->GetUniforms();
+
+		auto Uniforms = DescManager->GetUniforms(UniformSetIndex);
 
 		// Create dynamic uniform buffers that are needed by materials
 		for (const Uniform& Template : Uniforms)
@@ -476,7 +478,7 @@ void DeferredRenderer::Render(SceneData& Data)
 
 		for (int32_t i = 0; i < NeededNum; ++i)
 		{
-			upDescriptorInst NewDS = DescManager->GetDescriptorInstance();
+			upDescriptorInst NewDS = DescManager->GetDescriptorInstance(UniformSetIndex);
 
 			dsList.push_back(std::move(NewDS));
 		}

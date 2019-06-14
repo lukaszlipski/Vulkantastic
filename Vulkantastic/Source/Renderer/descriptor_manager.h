@@ -22,23 +22,29 @@ public:
 	DescriptorManager(DescriptorManager&& Rhs) noexcept;
 	DescriptorManager& operator=(DescriptorManager&& Rhs) noexcept;
 
-	std::unique_ptr<class DescriptorInst> GetDescriptorInstance();
-	std::unique_ptr<class ShaderParameters> GetShaderParametersInstance();
+	std::unique_ptr<class DescriptorInst> GetDescriptorInstance(uint32_t SetIdx = 0);
+	std::unique_ptr<class ShaderParameters> GetShaderParametersInstance(uint32_t SetIdx = 0);
 
-	inline VkDescriptorSetLayout GetLayout() const { return mLayout; }
-	inline VkDescriptorPool GetPool() const { return mPool; }
-	inline std::vector<Uniform> GetUniforms() const { return mUniforms; }
+	inline VkDescriptorSetLayout GetLayout(uint32_t SetIdx = 0) { return mLayouts[SetIdx]; }
+	inline VkDescriptorPool GetPool(uint32_t SetIdx = 0) { return mPools[SetIdx]; }
+	inline std::vector<Uniform> GetUniforms(uint32_t SetIdx = 0) { return mUniforms[SetIdx]; }
 	inline std::vector<Uniform> GetPushConstantsForShader(ShaderType Type) { return mPushConstants[Type]; }
 	inline std::map<ShaderType, std::vector<Uniform>> GetPushConstants() const { return mPushConstants;	}
 	inline std::vector<Shader*> GetShaders() const { return mShaders; }
+	inline uint32_t GetLayoutsCount() const { return static_cast<uint32_t>(mLayouts.size()); }
 
+	std::vector<VkDescriptorSetLayout> GetLayouts() const;
 	PipelineType GetPipelineType() const;
 
 private:
-	VkDescriptorSetLayout mLayout = nullptr;
-	VkDescriptorPool mPool = nullptr;
+	using DescSetLayouts = std::map<uint32_t, VkDescriptorSetLayout>;
+	using DescPools = std::map<uint32_t, VkDescriptorPool>;
+	using Uniforms = std::map<uint32_t, std::vector<Uniform>>;
+
+	DescSetLayouts mLayouts;
+	DescPools mPools;
 	int32_t mCurrentInstanceCount = 0;
-	std::vector<Uniform> mUniforms;
+	Uniforms mUniforms;
 	std::map<ShaderType, std::vector<Uniform>> mPushConstants;
 	PipelineType mPipelineType;
 	std::vector<Shader*> mShaders;
@@ -63,10 +69,12 @@ public:
 	DescriptorInst* SetBuffer(int32_t Binding, const UniformBuffer* BufferToSet);
 	DescriptorInst* SetImage(int32_t Binding, const ImageView* View, const Sampler* ImageSampler);
 
+	inline uint32_t GetSetIndex() const { return mSetIdx; }
+
 	void Update();
 
 private:
-	DescriptorInst(DescriptorManager* DescManager);
+	DescriptorInst(DescriptorManager* DescManager, uint32_t SetIdx = 0);
 
 	void AddBufferWriteDesc(const Uniform& Template);
 	void AddImageWriteDesc(const Uniform& Template);
@@ -82,6 +90,7 @@ private:
 	std::vector<Uniform> mUniforms;
 
 	DescriptorManager* mOwner = nullptr;
+	uint32_t mSetIdx = 0;
 
 };
 

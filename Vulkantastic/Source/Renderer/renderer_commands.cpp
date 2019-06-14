@@ -65,7 +65,7 @@ void Cmd::UpdateDescriptorData(CommandBuffer* Cb, ShaderParameters* Data, Descri
 	}
 
 	auto Set = DescSet->GetSet();
-	vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline->GetPipelineLayout(), 0, 1, &Set, static_cast<uint32_t>(DynamicOffsets.size()), DynamicOffsets.data());
+	vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline->GetPipelineLayout(), DescSet->GetSetIndex(), 1, &Set, static_cast<uint32_t>(DynamicOffsets.size()), DynamicOffsets.data());
 }
 
 void Cmd::SetViewports(CommandBuffer* Cb, IGraphicsPipeline* Pipeline)

@@ -110,7 +110,7 @@ SurfaceMaterial<T...>::SurfaceMaterial(const std::string& VertexShaderName, cons
 
 	RenderPass* Rp = DeferredRenderer::Get().GetBasePassRenderPass();
 
-	mShaderParams = PipelineManager::Get().GetShaderParametersInstance<T...>(*Rp, Shaders);
+	mShaderParams = PipelineManager::Get().GetShaderParametersInstance<T...>(*Rp, Shaders, 1);
 
 	ImageView* DefaultView = TextureManager::Get().GetImageView("test");
 

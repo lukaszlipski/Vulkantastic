@@ -14,13 +14,7 @@ out gl_PerVertex {
     vec4 gl_Position;
 };
 
-layout(push_constant) uniform PushConstant
-{
-	layout(offset = 0) mat4 MVP;
-	mat4 MV;
-};
-
-layout(binding=0) uniform UBO {
+layout(set = 1, binding = 0) uniform UBO {
     mat4 MVP2;
 	mat4 MV2;
 };

@@ -85,8 +85,12 @@ VkDescriptorType ShaderReflection::InternalUniformTypeToVulkan(VariableType Type
 		return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	case VariableType::STRUCTURE:
 		return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	case VariableType::SAMPLER:
+	case VariableType::COMBINED:
 		return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	case VariableType::SAMPLER:
+		return VK_DESCRIPTOR_TYPE_SAMPLER;
+	case VariableType::IMAGE:
+		return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	}
 
 	Assert(false); // Unsupported type
@@ -119,16 +123,16 @@ int32_t ShaderReflection::GetSizeForFormat(VariableType Format)
 
 int32_t ShaderReflection::GetSizeForStructure(Uniform Structure)
 {
-	int32_t Result = 0;
-	for (auto& Member : Structure.Members)
-	{
-		// Align to a Vulkan's boundary
-		const int32_t Alignment = 0xF;
-		Result += Alignment;
-		Result &= ~Alignment;
+	if (Structure.Members.size() <= 0) { return 0; }
 
-		Result += GetSizeForFormat(Member.Format);
-	}
+	auto& LastElem = Structure.Members.back();
+
+	int32_t Result = LastElem.Offset + GetSizeForFormat(LastElem.Format);
+
+	// Align to a Vulkan's boundary
+	const int32_t Alignment = 0xF;
+	Result += Alignment;
+	Result &= ~Alignment;
 
 	return Result;
 }
@@ -194,6 +198,8 @@ bool ShaderReflection::ParseInstruction()
 	case SpvOpTypeInt:
 	case SpvOpTypeStruct:
 	case SpvOpTypeSampledImage:
+	case SpvOpTypeSampler:
+	case SpvOpTypeImage:
 	{
 		GetType(mCurrentInstruction);
 		break;
@@ -555,7 +561,11 @@ VariableType ShaderReflection::GetVariableType(uint32_t Id)
 	case SpvOpTypeStruct:
 		return GetTypeOfStructure(Id);
 	case SpvOpTypeSampledImage:
+		return VariableType::COMBINED;
+	case SpvOpTypeSampler:
 		return VariableType::SAMPLER;
+	case SpvOpTypeImage:
+		return VariableType::IMAGE;
 	}
 
 	return VariableType::MAX;

@@ -24,7 +24,9 @@ enum class VariableType
 	MAT4x4,
 	STRUCTURE,
 	BUFFER,
+	COMBINED,
 	SAMPLER,
+	IMAGE,
 	MAX
 };
 

@@ -12,7 +12,15 @@ ShaderParameters::ShaderParameters(PipelineManager::KeyType Key, const std::vect
 		{
 			mUniformData.emplace_back(Template);
 		}
+		else if (Template.Format == VariableType::COMBINED)
+		{
+
+		}
 		else if (Template.Format == VariableType::SAMPLER)
+		{
+
+		}
+		else if (Template.Format == VariableType::IMAGE)
 		{
 
 		}

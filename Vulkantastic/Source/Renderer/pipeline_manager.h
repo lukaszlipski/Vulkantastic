@@ -29,10 +29,10 @@ public:
 	KeyType HashShaders(const std::vector<Shader*>& Shaders) const;
 
 	template<typename ...T>
-	std::unique_ptr<class DescriptorInst> GetDescriptorInstance(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders);
+	std::unique_ptr<class DescriptorInst> GetDescriptorInstance(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders, uint32_t SetIdx = 0);
 
 	template<typename ...T>
-	std::unique_ptr<class ShaderParameters> GetShaderParametersInstance(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders);
+	std::unique_ptr<class ShaderParameters> GetShaderParametersInstance(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders, uint32_t SetIdx = 0);
 
 	IGraphicsPipeline* GetPipelineByKey(KeyType Key);
 
@@ -42,7 +42,7 @@ private:
 };
 
 template<typename ...T>
-std::unique_ptr<DescriptorInst> PipelineManager::GetDescriptorInstance(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders)
+std::unique_ptr<DescriptorInst> PipelineManager::GetDescriptorInstance(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders, uint32_t SetIdx)
 {
 	using CurrentPipelineType = GraphicsPipeline<T...>;
 
@@ -51,17 +51,17 @@ std::unique_ptr<DescriptorInst> PipelineManager::GetDescriptorInstance(const Ren
 	if (It != end(mPipelines))
 	{
 		CurrentPipelineType* Pipeline = static_cast<CurrentPipelineType*>(It->second);
-		return Pipeline->GetDescriptorManager()->GetDescriptorInstance();
+		return Pipeline->GetDescriptorManager()->GetDescriptorInstance(SetIdx);
 	}
 
 	CurrentPipelineType* NewEntry = new CurrentPipelineType(GraphicsRenderPass, Shaders);
 	mPipelines[KeyResult] = NewEntry;
 
-	return NewEntry->GetDescriptorManager()->GetDescriptorInstance();
+	return NewEntry->GetDescriptorManager()->GetDescriptorInstance(SetIdx);
 }
 
 template<typename ...T>
-std::unique_ptr<ShaderParameters> PipelineManager::GetShaderParametersInstance(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders)
+std::unique_ptr<ShaderParameters> PipelineManager::GetShaderParametersInstance(const RenderPass& GraphicsRenderPass, PipelineShaders Shaders, uint32_t SetIdx)
 {
 	using CurrentPipelineType = GraphicsPipeline<T...>;
 
@@ -70,11 +70,11 @@ std::unique_ptr<ShaderParameters> PipelineManager::GetShaderParametersInstance(c
 	if (It != end(mPipelines))
 	{
 		CurrentPipelineType* Pipeline = static_cast<CurrentPipelineType*>(It->second);
-		return Pipeline->GetDescriptorManager()->GetShaderParametersInstance();
+		return Pipeline->GetDescriptorManager()->GetShaderParametersInstance(SetIdx);
 	}
 
 	CurrentPipelineType* NewEntry = new CurrentPipelineType(GraphicsRenderPass, Shaders);
 	mPipelines[KeyResult] = NewEntry;
 
-	return NewEntry->GetDescriptorManager()->GetShaderParametersInstance();
+	return NewEntry->GetDescriptorManager()->GetShaderParametersInstance(SetIdx);
 }

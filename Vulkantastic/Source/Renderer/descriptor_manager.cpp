@@ -28,51 +28,64 @@ DescriptorManager::DescriptorManager(std::vector<Shader*> Shaders)
 
 	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
-	std::vector<VkDescriptorSetLayoutBinding> DescLayoutBindings;
-	std::vector<VkDescriptorPoolSize> DescPoolSizes;
+	
+	using BindingsList = std::vector<VkDescriptorSetLayoutBinding>;
+	using PoolSizeList = std::vector<VkDescriptorPoolSize>;
+
+	std::map<uint32_t, BindingsList> DescLayoutBindings;
+	std::map<uint32_t, PoolSizeList> DescPoolSizes;
 
 	for (auto& Shader : mShaders)
 	{
 		auto Uniforms = Shader->GetUniforms();
 		auto PushConstants = Shader->GetPushConstants();
 
-		mUniforms.insert(mUniforms.end(), Uniforms.begin(), Uniforms.end());
 		mPushConstants[Shader->GetType()] = Shader->GetPushConstants();
 
 		for (auto& Uniform : Uniforms)
 		{
+			mUniforms[Uniform.Set].push_back(Uniform);
+
 			VkDescriptorSetLayoutBinding Binding = {};
 			Binding.binding = Uniform.Binding;
-			Binding.descriptorCount = 1;
+			Binding.descriptorCount = Uniform.Size;
 			Binding.stageFlags = ShaderReflection::InternalShaderTypeToVulkan(Shader->GetType());
 			Binding.descriptorType = ShaderReflection::InternalUniformTypeToVulkan(Uniform.Format);
 
-			DescLayoutBindings.push_back(Binding);
+			DescLayoutBindings[Uniform.Set].push_back(Binding);
 
 			VkDescriptorPoolSize Size = {};
 			Size.type = Binding.descriptorType;
-			Size.descriptorCount = 1;
+			Size.descriptorCount = Uniform.Size;
 
-			DescPoolSizes.push_back(Size);
+			DescPoolSizes[Uniform.Set].push_back(Size);
 
 		}
 	}
 
-	VkDescriptorSetLayoutCreateInfo DescriptorLayoutInfo = {};
-	DescriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	DescriptorLayoutInfo.bindingCount = static_cast<uint32_t>(DescLayoutBindings.size());
-	DescriptorLayoutInfo.pBindings = DescLayoutBindings.data();
+	for (const auto& Binding : DescLayoutBindings)
+	{
+		uint32_t SetIdx = Binding.first;
+
+		const BindingsList& Bindings = DescLayoutBindings[SetIdx];
+		const PoolSizeList& PoolSizes = DescPoolSizes[SetIdx];
+
+		VkDescriptorSetLayoutCreateInfo DescriptorLayoutInfo = {};
+		DescriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		DescriptorLayoutInfo.bindingCount = static_cast<uint32_t>(Bindings.size());
+		DescriptorLayoutInfo.pBindings = Bindings.data();
 	
-	Assert(vkCreateDescriptorSetLayout(Device, &DescriptorLayoutInfo, nullptr, &mLayout) == VK_SUCCESS);
+		Assert(vkCreateDescriptorSetLayout(Device, &DescriptorLayoutInfo, nullptr, &mLayouts[SetIdx]) == VK_SUCCESS);
 
-	VkDescriptorPoolCreateInfo CreateInfo = {};
-	CreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	CreateInfo.poolSizeCount = static_cast<uint32_t>(DescPoolSizes.size());
-	CreateInfo.pPoolSizes = DescPoolSizes.data();
-	CreateInfo.maxSets = MaxInstances;
-	CreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+		VkDescriptorPoolCreateInfo CreateInfo = {};
+		CreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		CreateInfo.poolSizeCount = static_cast<uint32_t>(PoolSizes.size());
+		CreateInfo.pPoolSizes = PoolSizes.data();
+		CreateInfo.maxSets = MaxInstances;
+		CreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
-	Assert(vkCreateDescriptorPool(Device, &CreateInfo, nullptr, &mPool) == VK_SUCCESS);
+		Assert(vkCreateDescriptorPool(Device, &CreateInfo, nullptr, &mPools[SetIdx]) == VK_SUCCESS);
+	}
 
 }
 
@@ -81,17 +94,28 @@ DescriptorManager::DescriptorManager(DescriptorManager&& Rhs) noexcept
 	*this = std::move(Rhs);
 }
 
-std::unique_ptr<DescriptorInst> DescriptorManager::GetDescriptorInstance()
+std::unique_ptr<DescriptorInst> DescriptorManager::GetDescriptorInstance(uint32_t SetIdx)
 {
 	Assert(mCurrentInstanceCount++ <= MaxInstances);
 
-	return std::unique_ptr<DescriptorInst>(new DescriptorInst(this));
+	return std::unique_ptr<DescriptorInst>(new DescriptorInst(this, SetIdx));
 }
 
-std::unique_ptr<ShaderParameters> DescriptorManager::GetShaderParametersInstance()
+std::unique_ptr<ShaderParameters> DescriptorManager::GetShaderParametersInstance(uint32_t SetIdx)
 {
 	PipelineManager::KeyType Key = PipelineManager::Get().HashShaders(GetShaders());
-	return std::make_unique<ShaderParameters>(Key, GetUniforms(), GetPushConstants() );
+	return std::make_unique<ShaderParameters>(Key, GetUniforms(SetIdx), GetPushConstants() );
+}
+
+std::vector<VkDescriptorSetLayout> DescriptorManager::GetLayouts() const
+{
+	std::vector<VkDescriptorSetLayout> Result;
+	Result.reserve(GetLayoutsCount());
+	for (const auto& Layout : mLayouts)
+	{
+		Result.push_back(Layout.second);
+	}
+	return Result;
 }
 
 PipelineType DescriptorManager::GetPipelineType() const
@@ -101,11 +125,11 @@ PipelineType DescriptorManager::GetPipelineType() const
 
 DescriptorManager& DescriptorManager::operator=(DescriptorManager&& Rhs) noexcept
 {
-	mLayout = Rhs.mLayout;
-	Rhs.mLayout = nullptr;
+	mLayouts = Rhs.mLayouts;
+	Rhs.mLayouts.clear();
 
-	mPool = Rhs.mPool;
-	Rhs.mPool = nullptr;
+	mPools = Rhs.mPools;
+	Rhs.mPools.clear();
 
 	mUniforms = std::move(Rhs.mUniforms);
 	mPushConstants = std::move(Rhs.mPushConstants);
@@ -121,15 +145,19 @@ DescriptorManager::~DescriptorManager()
 {
 	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
-	vkDestroyDescriptorSetLayout(Device, mLayout, nullptr);
-	vkDestroyDescriptorPool(Device, mPool, nullptr);
+	for (auto& Layout : mLayouts)
+	{
+		uint32_t SetIdx = Layout.first;
+		vkDestroyDescriptorSetLayout(Device, mLayouts[SetIdx], nullptr);
+		vkDestroyDescriptorPool(Device, mPools[SetIdx], nullptr);
+	}
 
 }
 
 DescriptorInst::~DescriptorInst()
 {
 	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
-	vkFreeDescriptorSets(Device, mOwner->GetPool(), 1, &mSet);
+	vkFreeDescriptorSets(Device, mOwner->GetPool(mSetIdx), 1, &mSet);
 
 	mOwner->mCurrentInstanceCount--;
 }
@@ -190,30 +218,30 @@ void DescriptorInst::Update()
 
 }
 
-DescriptorInst::DescriptorInst(DescriptorManager* DescManager)
-	: mOwner(DescManager)
+DescriptorInst::DescriptorInst(DescriptorManager* DescManager, uint32_t SetIdx)
+	: mOwner(DescManager), mSetIdx(SetIdx)
 {
 	Assert(mOwner);
 	auto Device = VulkanCore::Get().GetDevice()->GetDevice();
 
 	VkDescriptorSetAllocateInfo AllocDescriptorSetInfo = {};
 	AllocDescriptorSetInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	AllocDescriptorSetInfo.descriptorPool = mOwner->GetPool();
+	AllocDescriptorSetInfo.descriptorPool = mOwner->GetPool(mSetIdx);
 	AllocDescriptorSetInfo.descriptorSetCount = 1;
 
-	auto DescLayout = mOwner->GetLayout();
+	auto DescLayout = mOwner->GetLayout(mSetIdx);
 	AllocDescriptorSetInfo.pSetLayouts = &DescLayout;
 
 	Assert(vkAllocateDescriptorSets(Device, &AllocDescriptorSetInfo, &mSet) == VK_SUCCESS);
 	
-	mUniforms = mOwner->GetUniforms();
+	mUniforms = mOwner->GetUniforms(mSetIdx);
 
 	auto BuffersCount = std::count_if(mUniforms.begin(), mUniforms.end(), [](const auto& Elem) {
 		return Elem.Format == VariableType::STRUCTURE || Elem.Format == VariableType::BUFFER;
 	});
 
 	auto ImagesCount = std::count_if(mUniforms.begin(), mUniforms.end(), [](const auto& Elem) {
-		return Elem.Format == VariableType::SAMPLER;
+		return Elem.Format == VariableType::COMBINED;
 	});
 
 	mBuffersInfo.reserve(BuffersCount);
@@ -225,7 +253,7 @@ DescriptorInst::DescriptorInst(DescriptorManager* DescManager)
 		{
 			AddBufferWriteDesc(Template);
 		}
-		else if (Template.Format == VariableType::SAMPLER)
+		else if (Template.Format == VariableType::COMBINED)
 		{
 			AddImageWriteDesc(Template);
 		}
