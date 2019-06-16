@@ -16,11 +16,13 @@ int32_t CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 	MeshComp.SetPosition({ 1,0,0 });
 	MeshComp.SetRotation({1,0,0}, 45.0f);
 	MeshComp.GetMeshHandle()->GetMaterial(0)->SetCustomColor(glm::vec3(1, 1, 1));
+	MeshComp.GetMeshHandle()->GetMaterial(0)->SetAlbedoTexture("test");
 
 	StaticMeshComponent MeshComp2(MeshComp);
 	MeshComp2.SetPosition({ -1,0,0 });
 	MeshComp2.SetRotation({ 1,0,0 }, -45.0f);
-	MeshComp2.GetMeshHandle()->GetMaterial(0)->SetCustomColor(glm::vec3(1, 0, 1));
+	MeshComp2.GetMeshHandle()->GetMaterial(0)->SetCustomColor(glm::vec3(1, 1, 1));
+	MeshComp2.GetMeshHandle()->GetMaterial(0)->SetAlbedoTexture("test2");
 
 	SceneData DataToRender;
 	DataToRender.CameraPosition = glm::vec3(3, 3, 3);

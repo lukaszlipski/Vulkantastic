@@ -26,9 +26,12 @@ public:
 	SurfaceMaterial& SetMVP(const glm::mat4x4& MVP);
 	SurfaceMaterial& SetMV(const glm::mat4x4& MV);
 	SurfaceMaterial& SetCustomColor(const glm::vec3& CustomColor); 
-	SurfaceMaterial& SetAlbedoTexture(ImageView* const AlbedoView, Sampler* const AlbedoSampler);
+	SurfaceMaterial& SetAlbedoTexture(const std::string& Name);
 
 	inline ShaderParameters* GetShaderParameters() const { return mShaderParams.get(); }
+
+	std::map<std::string, std::string> GetUsedImages() const { return mImages; }
+	std::map<std::string, SamplerSettings> GetUsedSamplers() const { return mSamplers; }
 
 	IGraphicsPipeline* GetPipeline() const;
 
@@ -36,7 +39,10 @@ public:
 
 private:
 
-	std::unique_ptr<ShaderParameters> mShaderParams;
+	upShaderParameters mShaderParams;
+
+	std::map<std::string, std::string> mImages;  // PushConstantName -> ImageName
+	std::map<std::string, SamplerSettings> mSamplers;  // PushConstantName -> SamplerSettings
 
 	std::string mVertexShader;
 	std::string mFragmentShader;
@@ -65,6 +71,8 @@ SurfaceMaterial<T...>& SurfaceMaterial<T...>::operator=(const SurfaceMaterial& R
 		mShaderParams = std::make_unique<ShaderParameters>(*Ptr);
 	}
 
+	mImages = Rhs.mImages;
+
 	return *this;
 }
 
@@ -81,6 +89,8 @@ SurfaceMaterial<T...>& SurfaceMaterial<T...>::operator=(SurfaceMaterial<T...>&& 
 	mFragmentShader = std::move(Rhs.mFragmentShader);
 
 	mShaderParams = std::move(Rhs.mShaderParams);
+
+	mImages = std::move(Rhs.mImages);
 
 	return *this;
 }
@@ -110,24 +120,22 @@ SurfaceMaterial<T...>::SurfaceMaterial(const std::string& VertexShaderName, cons
 
 	RenderPass* Rp = DeferredRenderer::Get().GetBasePassRenderPass();
 
-	mShaderParams = PipelineManager::Get().GetShaderParametersInstance<T...>(*Rp, Shaders, 1);
+	mShaderParams = PipelineManager::Get().GetShaderParametersInstance<T...>(*Rp, Shaders, 1); // Set 1 should contain uniform buffer
 
-	ImageView* DefaultView = TextureManager::Get().GetImageView("test");
+	// Define default images used by material
+	mImages["AlbedoIdx"] = "test";
 
-	// Create sampler
-	SamplerSettings SamplerInstSettings = {};
-	SamplerInstSettings.MaxAnisotropy = 16;
+	// Define default samplers used by material
+	mSamplers["WrapIdx"] = WrapSampler;
+	mSamplers["RepeatIdx"] = RepeatSampler;
 
-	Sampler* DefaultSampler = TextureManager::Get().GetSampler(SamplerInstSettings);
-
-	SetAlbedoTexture(DefaultView, DefaultSampler);
 }
 
 template<typename ...T>
 SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetMVP(const glm::mat4x4& MVP)
 {
 
-	UniformRawData* RawData = mShaderParams->GetUniformBufferByBinding(0);
+	UniformRawData* RawData = mShaderParams->GetUniformBufferByBinding(0); // Vertex shader's uniform buffer
 	RawData->Set("MVP2", MVP);
 
 	return *this;
@@ -138,7 +146,7 @@ template<typename ...T>
 SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetMV(const glm::mat4x4& MV)
 {
 
-	UniformRawData* RawData = mShaderParams->GetUniformBufferByBinding(0);
+	UniformRawData* RawData = mShaderParams->GetUniformBufferByBinding(0); // Vertex shader's uniform buffer
 	RawData->Set("MV2", MV);
 
 	return *this;
@@ -148,16 +156,19 @@ SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetMV(const glm::mat4x4& MV)
 template<typename ...T>
 SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetCustomColor(const glm::vec3& CustomColor)
 {
-	auto PCFragPtr = mShaderParams->GetPushConstantBuffer(ShaderType::FRAGMENT);
-	PCFragPtr->Set("CustomColor", CustomColor);
+	//auto PCFragPtr = mShaderParams->GetPushConstantBuffer(ShaderType::FRAGMENT);
+	//PCFragPtr->Set("CustomColor", CustomColor);
+
+	UniformRawData* RawData = mShaderParams->GetUniformBufferByBinding(1); // Fragment shader's uniform buffer
+	RawData->Set("CustomColor2", CustomColor);
 
 	return *this;
 }
 
 template<typename ...T>
-SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetAlbedoTexture(ImageView* const AlbedoView, Sampler* const AlbedoSampler)
+SurfaceMaterial<T...>& SurfaceMaterial<T...>::SetAlbedoTexture(const std::string& Name)
 {
-	//mDescriptorInstance->SetImage("Albedo", *AlbedoView, *AlbedoSampler);
+	mImages["AlbedoIdx"] = Name;
 	
 	return *this;
 }

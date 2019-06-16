@@ -21,7 +21,15 @@ struct SamplerSettings
 	FilterMode MinFilter = FilterMode::LINEAR;
 	FilterMode MagFilter = FilterMode::LINEAR;
 	FilterMode MipMapFilter = FilterMode::LINEAR;
-	float MaxAnisotropy = 0;
+	float MaxAnisotropy = 16;
+
+	friend bool operator==(const SamplerSettings& Lhs, const SamplerSettings& Rhs)
+	{
+		return	Lhs.WrapX == Rhs.WrapX && Lhs.WrapY == Rhs.WrapY && Lhs.WrapZ == Rhs.WrapZ &&
+				Lhs.MinFilter == Rhs.MinFilter && Lhs.MagFilter == Rhs.MagFilter && Lhs.MipMapFilter == Rhs.MipMapFilter &&
+				Lhs.MaxAnisotropy == Rhs.MaxAnisotropy;
+	}
+
 };
 
 class Sampler
@@ -36,3 +44,10 @@ private:
 	VkSampler mSampler = nullptr;
 	SamplerSettings mSettings;
 };
+
+
+// Default sampler settings
+
+constexpr SamplerSettings RepeatSampler = SamplerSettings{ };
+constexpr SamplerSettings WrapSampler = SamplerSettings{ AdressMode::BORDER, AdressMode::BORDER, AdressMode::BORDER };
+

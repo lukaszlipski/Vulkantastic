@@ -9,6 +9,7 @@
 #include "../Renderer/pipeline_manager.h"
 #include "../Renderer/uniform_buffer.h"
 #include "../Renderer/shader_parameters.h"
+#include "image_array_manager.h"
 
 class StaticMesh;
 class DescriptorInst;
@@ -70,9 +71,12 @@ private:
 	using UBTemplate = std::pair<uint32_t, upUniformBufferList>;
 	using UBTemplates = std::vector<UBTemplate>;
 	
+	std::map<PipelineManager::KeyType, upImageArrayManager> mImageArrayManagers;
 	std::map<PipelineManager::KeyType, UBTemplates> mMaterialUniformBuffers;
 	std::map<PipelineManager::KeyType, upDescriptorInstList> mDescriptorInstances;
 	int32_t mMaxElementsInUB = 32;
+
+	std::map<PipelineManager::KeyType, upDescriptorInst> mImageArraysDescriptorInstances;
 
 	inline int32_t GetBufferIDByIndex(int32_t Index) { return Index / mMaxElementsInUB; }
 	inline int32_t GetEntryIDByIndex(int32_t Index) { return Index % mMaxElementsInUB; }

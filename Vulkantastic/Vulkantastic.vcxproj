@@ -88,6 +88,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -126,6 +127,7 @@ python ./Scripts/PreprocessTextures.py</Command>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -140,6 +142,7 @@ python ./Scripts/PreprocessTextures.py</Command>
     <ClInclude Include="Source\File\path.h" />
     <ClInclude Include="Source\RendererFE\deferred_renderer.h" />
     <ClInclude Include="Source\RendererFE\dds_image.h" />
+    <ClInclude Include="Source\RendererFE\image_array_manager.h" />
     <ClInclude Include="Source\Renderer\renderer_commands.h" />
     <ClInclude Include="Source\RendererFE\static_mesh_component.h" />
     <ClInclude Include="Source\RendererFE\surface_material.h" />
@@ -188,6 +191,7 @@ python ./Scripts/PreprocessTextures.py</Command>
     <ClCompile Include="Source\Renderer\device.cpp" />
     <ClCompile Include="Source\Renderer\framebuffer.cpp" />
     <ClCompile Include="Source\Renderer\image.cpp" />
+    <ClCompile Include="Source\RendererFE\image_array_manager.cpp" />
     <ClCompile Include="Source\Renderer\image_view.cpp" />
     <ClCompile Include="Source\Renderer\memory_manager.cpp" />
     <ClCompile Include="Source\Renderer\pipeline_manager.cpp" />

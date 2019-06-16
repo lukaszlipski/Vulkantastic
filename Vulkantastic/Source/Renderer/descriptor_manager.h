@@ -67,7 +67,9 @@ public:
 	inline VkDescriptorSet GetSet() const { return mSet; }
 
 	DescriptorInst* SetBuffer(int32_t Binding, const UniformBuffer* BufferToSet);
-	DescriptorInst* SetImage(int32_t Binding, const ImageView* View, const Sampler* ImageSampler);
+	DescriptorInst* SetImage(int32_t Binding, const ImageView* View, const Sampler* ImageSampler, uint32_t Index = 0);
+	DescriptorInst* SetImage(int32_t Binding, const ImageView* View, uint32_t Index = 0);
+	DescriptorInst* SetSampler(int32_t Binding, const Sampler* ImageSampler, uint32_t Index = 0);
 
 	inline uint32_t GetSetIndex() const { return mSetIdx; }
 
@@ -82,7 +84,7 @@ private:
 	VkDescriptorSet mSet = nullptr;
 
 	using BufferWriteDescList = std::vector< std::pair<VkWriteDescriptorSet, VkDescriptorBufferInfo> >;
-	using ImageWriteDescList = std::vector< std::pair<VkWriteDescriptorSet, VkDescriptorImageInfo> >;
+	using ImageWriteDescList = std::vector< std::pair<VkWriteDescriptorSet, std::vector<VkDescriptorImageInfo>> >;
 
 	BufferWriteDescList mBuffersInfo;
 	ImageWriteDescList mImagesInfo;

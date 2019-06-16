@@ -10,7 +10,6 @@
 #include "../Renderer/buffer.h"
 #include "../Renderer/renderer_commands.h"
 
-
 DeferredRenderer::~DeferredRenderer()
 {
 
@@ -219,6 +218,7 @@ bool DeferredRenderer::Startup()
 
 bool DeferredRenderer::Shutdown()
 {
+	mImageArrayManagers.clear();
 	mMaterialUniformBuffers.clear();
 	mDescriptorInstances.clear();
 
@@ -501,7 +501,61 @@ void DeferredRenderer::Render(SceneData& Data)
 
 	}
 
+	// Update image manager
 
+	const uint32_t ImageArraySetIndex = 0;
+
+	mImageArrayManagers.clear();
+
+	for (const auto& RendererData : PartitionedRendererData)
+	{
+		const PipelineManager::KeyType& Key = RendererData.first;
+		const RenderableDataList& DataList = RendererData.second;
+
+		DescriptorManager* DescManager = PipelineManager::Get().GetPipelineByKey(Key)->GetDescriptorManager();
+
+		mImageArrayManagers[Key] = std::make_unique<ImageArrayManager>(DescManager, ImageArraySetIndex);
+
+		upImageArrayManager& ImgArrManager = mImageArrayManagers[Key];
+
+		for (const RenderableData& DataToRender : DataList)
+		{
+			StaticMeshHandle* const MeshHandle = DataToRender.MeshHandle;
+			const int32_t Id = DataToRender.Id;
+			StaticSurfaceMaterial* Material = MeshHandle->GetMaterial(Id);
+			ShaderParameters* Params = Material->GetShaderParameters();
+
+			// #TODO: Add support for vertex shader
+			UniformRawData* RawData = Params->GetPushConstantBuffer(ShaderType::FRAGMENT);
+			
+			const auto& UsedImages = Material->GetUsedImages();
+			const auto& UsedSamplers = Material->GetUsedSamplers();
+
+			for (auto& Image : UsedImages)
+			{
+				const std::string& PushConstantName = Image.first;
+				const std::string& ImageName = Image.second;
+				
+				const int32_t Id = ImgArrManager->SetImage(ImageName);
+
+				RawData->Set(PushConstantName, Id);
+			}
+
+			for (auto& Smp : UsedSamplers)
+			{
+				const std::string& PushConstantName = Smp.first;
+				const SamplerSettings& SmpSettings = Smp.second;
+
+				const int32_t Id = ImgArrManager->SetSampler(SmpSettings);
+
+				RawData->Set(PushConstantName, Id);
+			}
+
+		}
+
+		ImgArrManager->Update();
+
+	}
 
 
 	Image::ChangeMultipleLayouts(	{ mColorBuffer.get(),				mNormalBuffer.get(),			mPositionBuffer.get() }, 
@@ -527,7 +581,11 @@ void DeferredRenderer::Render(SceneData& Data)
 		upDescriptorInstList& DSList = mDescriptorInstances[PipelineKey];
 		UBTemplates& UBList = mMaterialUniformBuffers[PipelineKey];
 
+		upImageArrayManager& ImgArrManager = mImageArrayManagers[PipelineKey];
+
 		Cmd::BindGraphicsPipeline(mBasePassCommandBuffer.get(), Pipeline);
+
+		Cmd::UpdateDescriptorData(mBasePassCommandBuffer.get(), ImgArrManager->GetDescInst(), Pipeline);
 
 		for (int32_t i = 0; i < RenderableDataList.size(); ++i)
 		{
@@ -554,7 +612,8 @@ void DeferredRenderer::Render(SceneData& Data)
 
 			upDescriptorInst& CurrentDS = DSList[BufferID];
 
-			Cmd::UpdateDescriptorData(mBasePassCommandBuffer.get(), Params, CurrentDS.get(), Pipeline, DynamicOffsets);
+			Cmd::UpdatePushConstants(mBasePassCommandBuffer.get(), Params, Pipeline);
+			Cmd::UpdateDescriptorData(mBasePassCommandBuffer.get(), CurrentDS.get(), Pipeline, DynamicOffsets);
 
 			Cmd::BindVertexAndIndexBuffer(mBasePassCommandBuffer.get(), Mesh->GetVertexBuffer(Id), Mesh->GetIndexBuffer(Id));
 			Cmd::SetViewports(mBasePassCommandBuffer.get(), Pipeline);
@@ -598,9 +657,10 @@ void DeferredRenderer::Render(SceneData& Data)
 
 		auto PCFragPtr = mDirectionalLightPassShaderParams->GetPushConstantBuffer(ShaderType::FRAGMENT);
 		PCFragPtr->Set("Direction", glm::normalize(glm::vec3(-1, -1, -1)));
-		PCFragPtr->Set("LightColor", glm::vec3(0,1,1));
+		PCFragPtr->Set("LightColor", glm::vec3(1,1,1));
 		
-		Cmd::UpdateDescriptorData(mLightPassCommandBuffer.get(), mDirectionalLightPassShaderParams.get(), mDirectionalLightPassDescriporInst.get(), Pipeline);
+		Cmd::UpdatePushConstants(mLightPassCommandBuffer.get(), mDirectionalLightPassShaderParams.get(), Pipeline);
+		Cmd::UpdateDescriptorData(mLightPassCommandBuffer.get(), mDirectionalLightPassDescriporInst.get(), Pipeline);
 
 		Cmd::BindGraphicsPipeline(mLightPassCommandBuffer.get(), Pipeline);
 		Cmd::BindVertexBuffer(mLightPassCommandBuffer.get(), mScreenVertexBuffer.get());
@@ -643,7 +703,8 @@ void DeferredRenderer::Render(SceneData& Data)
 
 		Cmd::BindVertexBuffer(mScreenCommandBuffer.get(), mScreenVertexBuffer.get());
 		
-		Cmd::UpdateDescriptorData(mScreenCommandBuffer.get(), mScreenShaderParams.get(), mScreenDescriporInst.get(), Pipeline);
+		Cmd::UpdatePushConstants(mScreenCommandBuffer.get(), mScreenShaderParams.get(), Pipeline);
+		Cmd::UpdateDescriptorData(mScreenCommandBuffer.get(), mScreenDescriporInst.get(), Pipeline);
 
 		Cmd::SetViewports(mScreenCommandBuffer.get(), Pipeline);
 		Cmd::Draw(mScreenCommandBuffer.get(), 6);

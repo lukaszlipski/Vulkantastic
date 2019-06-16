@@ -50,7 +50,7 @@ void Cmd::Draw(CommandBuffer* Cb, uint32_t Size, uint32_t InstancesCount /*= 1*/
 	vkCmdDraw(Cb->GetCommandBuffer(), Size, InstancesCount, 0, 0);
 }
 
-void Cmd::UpdateDescriptorData(CommandBuffer* Cb, ShaderParameters* Data, DescriptorInst* DescSet, IPipeline* Pipeline, std::vector<uint32_t> DynamicOffsets)
+void Cmd::UpdatePushConstants(CommandBuffer* Cb, ShaderParameters* Data, IPipeline* Pipeline)
 {
 	auto PCVertPtr = Data->GetPushConstantBuffer(ShaderType::VERTEX);
 	if (PCVertPtr)
@@ -63,7 +63,10 @@ void Cmd::UpdateDescriptorData(CommandBuffer* Cb, ShaderParameters* Data, Descri
 	{
 		vkCmdPushConstants(Cb->GetCommandBuffer(), Pipeline->GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, PCFragPtr->GetOffset(), PCFragPtr->GetSize(), PCFragPtr->GetBuffer());
 	}
+}
 
+void Cmd::UpdateDescriptorData(CommandBuffer* Cb, DescriptorInst* DescSet, IPipeline* Pipeline, std::vector<uint32_t> DynamicOffsets)
+{
 	auto Set = DescSet->GetSet();
 	vkCmdBindDescriptorSets(Cb->GetCommandBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, Pipeline->GetPipelineLayout(), DescSet->GetSetIndex(), 1, &Set, static_cast<uint32_t>(DynamicOffsets.size()), DynamicOffsets.data());
 }

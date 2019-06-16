@@ -24,7 +24,9 @@ namespace Cmd
 
 	void Draw(CommandBuffer* Cb, uint32_t Size, uint32_t InstancesCount = 1);
 
-	void UpdateDescriptorData(CommandBuffer* Cb, ShaderParameters* Data, DescriptorInst* DescSet, IPipeline* Pipeline, std::vector<uint32_t> DynamicOffsets = {});
+	void UpdatePushConstants(CommandBuffer* Cb, ShaderParameters* Data, IPipeline* Pipeline);
+
+	void UpdateDescriptorData(CommandBuffer* Cb, DescriptorInst* DescSet, IPipeline* Pipeline, std::vector<uint32_t> DynamicOffsets = {});
 
 	void SetViewports(CommandBuffer* Cb, IGraphicsPipeline* Pipeline);
 

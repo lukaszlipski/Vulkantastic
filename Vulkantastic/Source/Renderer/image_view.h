@@ -27,7 +27,7 @@ public:
 
 	inline VkImageView GetView() const { return mView; }
 	inline ImageLayout GetCurrentImageLayout() const { return mImage->GetCurrentLayout(); }
-	inline ImageFormat GetViewFormat() const { mSettings.Format; }
+	inline ImageFormat GetViewFormat() const { return mSettings.Format; }
 
 private:
 	VkImageView mView = nullptr;

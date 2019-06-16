@@ -1,8 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-// Same as in image_descriptor_manager.h
-#define MaxImages 4096
+#define MaxImages 1024
 #define MaxSamplers 2
 
 layout(location=0) out vec4 Color;
@@ -18,16 +17,20 @@ layout(set = 0, binding = 1) uniform texture2D ImagesArray[MaxImages];
 
 layout(push_constant) uniform PushConstant2
 {
-	vec3 CustomColor;
-    int SmpIdx;
-    int ImgIdx;
+    int WrapIdx;
+    int RepeatIdx;
+    int AlbedoIdx;
+};
+
+layout(set = 1, binding = 1) uniform UBO2 {
+    vec3 CustomColor2;
 };
 
 void main()
 {
-    //vec4 TexColor = texture(sampler2D(ImagesArray[ImgIdx], SamplersArray[SmpIdx]), fTexCoord);
+    vec4 TexColor = texture(sampler2D(ImagesArray[AlbedoIdx], SamplersArray[RepeatIdx]), fTexCoord);
 
-    Color = vec4(CustomColor, 1.0f);// * TexColor;
+    Color = vec4(CustomColor2, 1.0f) * TexColor;
     Normal = vec4(fNormal,1.0f);
     Position = fPosition;
 }

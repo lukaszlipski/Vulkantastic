@@ -179,15 +179,18 @@ DescriptorInst* DescriptorInst::SetBuffer(int32_t Binding, const UniformBuffer* 
 	return this;
 }
 
-DescriptorInst* DescriptorInst::SetImage(int32_t Binding, const ImageView* View, const Sampler* ImageSampler)
+DescriptorInst* DescriptorInst::SetImage(int32_t Binding, const ImageView* View, const Sampler* ImageSampler, uint32_t Index)
 {
 	auto SetIt = std::find_if(mImagesInfo.begin(), mImagesInfo.end(), [&Binding](const auto& Elem) {
 		return Elem.first.dstBinding == Binding;
-		});
+	});
 
 	if (SetIt != mImagesInfo.end() && View && ImageSampler)
 	{
-		VkDescriptorImageInfo& ImageInfo = SetIt->second;
+		std::vector<VkDescriptorImageInfo>& ImageInfos = SetIt->second;
+		Assert(Index < ImageInfos.size() && Index >= 0);
+
+		VkDescriptorImageInfo& ImageInfo = ImageInfos[Index];
 		ImageInfo.imageLayout = static_cast<VkImageLayout>(View->GetCurrentImageLayout());
 		ImageInfo.imageView = View->GetView();
 		ImageInfo.sampler = ImageSampler->GetSampler();
@@ -196,6 +199,46 @@ DescriptorInst* DescriptorInst::SetImage(int32_t Binding, const ImageView* View,
 	return this;
 }
 
+
+DescriptorInst* DescriptorInst::SetImage(int32_t Binding, const ImageView* View, uint32_t Index)
+{
+	auto SetIt = std::find_if(mImagesInfo.begin(), mImagesInfo.end(), [&Binding](const auto& Elem) {
+		return Elem.first.dstBinding == Binding;
+	});
+
+	if (SetIt != mImagesInfo.end() && View)
+	{
+		std::vector<VkDescriptorImageInfo>& ImageInfos = SetIt->second;
+		Assert(Index < ImageInfos.size() && Index >= 0);
+
+		VkDescriptorImageInfo& ImageInfo = ImageInfos[Index];
+		ImageInfo.imageLayout = static_cast<VkImageLayout>(View->GetCurrentImageLayout());
+		ImageInfo.imageView = View->GetView();
+		ImageInfo.sampler = VK_NULL_HANDLE;
+	}
+
+	return this;
+}
+
+DescriptorInst* DescriptorInst::SetSampler(int32_t Binding, const Sampler* ImageSampler, uint32_t Index)
+{
+	auto SetIt = std::find_if(mImagesInfo.begin(), mImagesInfo.end(), [&Binding](const auto& Elem) {
+		return Elem.first.dstBinding == Binding;
+	});
+
+	if (SetIt != mImagesInfo.end() && ImageSampler)
+	{
+		std::vector<VkDescriptorImageInfo>& ImageInfos = SetIt->second;
+		Assert(Index < ImageInfos.size() && Index >= 0);
+
+		VkDescriptorImageInfo& ImageInfo = ImageInfos[Index];
+		ImageInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		ImageInfo.imageView = VK_NULL_HANDLE;
+		ImageInfo.sampler = ImageSampler->GetSampler();
+	}
+	
+	return this;
+}
 
 void DescriptorInst::Update()
 {
@@ -253,7 +296,7 @@ DescriptorInst::DescriptorInst(DescriptorManager* DescManager, uint32_t SetIdx)
 		{
 			AddBufferWriteDesc(Template);
 		}
-		else if (Template.Format == VariableType::COMBINED)
+		else if (Template.Format == VariableType::COMBINED || Template.Format == VariableType::IMAGE || Template.Format == VariableType::SAMPLER)
 		{
 			AddImageWriteDesc(Template);
 		}
@@ -287,13 +330,16 @@ void DescriptorInst::AddImageWriteDesc(const Uniform& Template)
 
 	auto& Entry = mImagesInfo.back();
 	auto& Set = Entry.first;
+	auto& Info = Entry.second;
+
+	Info.resize(Template.Size);
 
 	Set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	Set.dstSet = mSet;
 	Set.dstBinding = Template.Binding;
-	Set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	Set.descriptorCount = 1;
-	Set.pImageInfo = &Entry.second;
+	Set.descriptorType = ShaderReflection::InternalUniformTypeToVulkan(Template.Format);
+	Set.descriptorCount = Template.Size;
+	Set.pImageInfo = Entry.second.data();
 }
 
 DescriptorInst& DescriptorInst::operator=(DescriptorInst&& Rhs) noexcept
